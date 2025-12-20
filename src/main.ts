@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { envConfig } from './config/env.config';
 
@@ -20,7 +21,12 @@ async function bootstrap() {
     }),
   );
 
+  // Socket.IO Adapter 설정
+  app.useWebSocketAdapter(new IoAdapter(app));
+
   await app.listen(envConfig.port);
   console.log(`Application is running on: http://localhost:${envConfig.port}`);
+  console.log(`Socket.IO enabled with default adapter`);
 }
+
 bootstrap();

@@ -58,7 +58,7 @@ export class RealtimeGateway
     @MessageBody() moveDto: MoveDto,
     @ConnectedSocket() client: Socket,
   ) {
-    console.log('move:', moveDto);
+    console.log('move:', client);
     // TODO: 이동 로직 구현
     // - 위치 유효성 검증
     // - 같은 방의 다른 사용자들에게 브로드캐스트
