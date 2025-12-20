@@ -13,9 +13,19 @@ import { UserId } from '../../common/decorators/user.decorator';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { MessagePaginationDto, PaginationDto } from './dto/pagination.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateOrFindRoom,
+  ApiGetMyRooms,
+  ApiGetRoomDetail,
+  ApiGetRoomMessages,
+  ApiSendMessage,
+} from '../../common/swagger/api.decorator';
 
+@ApiTags('Chat')
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class ChatsController {
   constructor(private readonly chatsService: ChatsService) {}
 
@@ -24,6 +34,7 @@ export class ChatsController {
    * 채팅방 조회 또는 생성
    */
   @Post('rooms')
+  @ApiCreateOrFindRoom()
   async createOrFindRoom(
     @UserId() userId: string,
     @Body() createRoomDto: CreateRoomDto,
@@ -63,6 +74,7 @@ export class ChatsController {
    * 내 채팅방 목록 조회
    */
   @Get('rooms')
+  @ApiGetMyRooms()
   async getMyRooms(
     @UserId() userId: string,
     @Query() paginationDto: PaginationDto,
@@ -84,6 +96,7 @@ export class ChatsController {
    * 채팅방 상세 조회
    */
   @Get('rooms/:id')
+  @ApiGetRoomDetail()
   async getRoomDetail(@UserId() userId: string, @Param('id') roomId: string) {
     const room = await this.chatsService.getRoomDetail(roomId, userId);
 
@@ -98,6 +111,7 @@ export class ChatsController {
    * 채팅방 메시지 조회
    */
   @Get('rooms/:id/messages')
+  @ApiGetRoomMessages()
   async getRoomMessages(
     @UserId() userId: string,
     @Param('id') roomId: string,
@@ -121,6 +135,7 @@ export class ChatsController {
    * 메시지 전송 (REST API)
    */
   @Post('rooms/:id/messages')
+  @ApiSendMessage()
   async sendMessage(
     @UserId() userId: string,
     @Param('id') roomId: string,

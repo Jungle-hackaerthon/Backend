@@ -26,10 +26,16 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('API Docs')
-    .setDescription('My API documentation')
+    .setTitle('100won-market API Docs')
+    .setDescription(
+      'REST API documentation for 100won-market. For WebSocket APIs (/map, /chat), please refer to the markdown documents (mapapi.md, chatapi.md).',
+    )
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag(
+      'Map (WebSocket)',
+      'WebSocket-based service for map interactions. See mapapi.md for details.',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

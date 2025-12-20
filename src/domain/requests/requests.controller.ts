@@ -7,21 +7,34 @@ import {
   Param,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { CreateResponseDto } from './dto/create-response.dto';
 import { QueryRequestsDto } from './dto/query-requests.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { UserId } from '../../common/decorators/user.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateRequest,
+  ApiFindAllRequests,
+  ApiFindOneRequest,
+  ApiCancelRequest,
+  ApiCreateResponse,
+  ApiFindResponses,
+  ApiSelectHelper,
+  ApiCompleteRequest,
+} from '../../common/swagger/api.decorator';
 
 /**
  * 요청(Request) 시스템 컨트롤러
  * - 사용자가 부탁을 생성하고, 다른 사용자가 응찰하는 시스템
  * - 모든 엔드포인트는 JWT 인증 필요
  */
+@ApiTags('Requests')
 @Controller('requests')
 @UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
@@ -31,8 +44,8 @@ export class RequestsController {
    * - 같은 맵의 유저들에게 소켓으로 실시간 브로드캐스트
    */
   @Post()
-  async create(@Request() req, @Body() dto: CreateRequestDto) {
-    const userId = req.user.id;
+  @ApiCreateRequest()
+  async create(@UserId() userId: string, @Body() dto: CreateRequestDto) {
     const request = await this.requestsService.create(userId, dto);
 
     return {
@@ -48,6 +61,7 @@ export class RequestsController {
    * - 페이지네이션 지원
    */
   @Get()
+  @ApiFindAllRequests()
   async findAll(@Query() query: QueryRequestsDto) {
     const result = await this.requestsService.findAll(query);
 
@@ -62,6 +76,7 @@ export class RequestsController {
    * - 응찰 목록 및 선택된 응찰 포함
    */
   @Get(':id')
+  @ApiFindOneRequest()
   async findOne(@Param('id') id: string) {
     const request = await this.requestsService.findOne(id);
 
@@ -77,8 +92,8 @@ export class RequestsController {
    * - 맵에서 제거 (소켓 브로드캐스트)
    */
   @Delete(':id')
-  async cancel(@Request() req, @Param('id') id: string) {
-    const userId = req.user.id;
+  @ApiCancelRequest()
+  async cancel(@UserId() userId: string, @Param('id') id: string) {
     await this.requestsService.cancel(id, userId);
 
     return {
@@ -93,12 +108,12 @@ export class RequestsController {
    * - 본인 요청에는 응찰 불가
    */
   @Post(':id/responses')
+  @ApiCreateResponse()
   async createResponse(
-    @Request() req,
+    @UserId() userId: string,
     @Param('id') requestId: string,
     @Body() dto: CreateResponseDto,
   ) {
-    const userId = req.user.id;
     const response = await this.requestsService.createResponse(
       requestId,
       userId,
@@ -117,6 +132,7 @@ export class RequestsController {
    * - 특정 요청의 모든 응찰 조회
    */
   @Get(':id/responses')
+  @ApiFindResponses()
   async findResponses(@Param('id') requestId: string) {
     const responses = await this.requestsService.findResponses(requestId);
 
@@ -134,12 +150,12 @@ export class RequestsController {
    * - 요청자만 가능
    */
   @Post(':id/select/:responseId')
+  @ApiSelectHelper()
   async selectHelper(
-    @Request() req,
+    @UserId() userId: string,
     @Param('id') requestId: string,
     @Param('responseId') responseId: string,
   ) {
-    const userId = req.user.id;
     const result = await this.requestsService.selectHelper(
       requestId,
       responseId,
@@ -159,8 +175,8 @@ export class RequestsController {
    * - 맵에서 제거 (소켓 브로드캐스트)
    */
   @Post(':id/complete')
-  async complete(@Request() req, @Param('id') requestId: string) {
-    const userId = req.user.id;
+  @ApiCompleteRequest()
+  async complete(@UserId() userId: string, @Param('id') requestId: string) {
     const result = await this.requestsService.complete(requestId, userId);
 
     return {
