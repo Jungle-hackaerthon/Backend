@@ -10,9 +10,12 @@ export enum RequestStatus {
 
 @Entity('requests')
 export class Request extends BaseTimestampEntity {
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE', eager: true })
   @JoinColumn({ name: 'requester_id' })
   requester: User;
+
+  @Column({ name: 'merchant_name', type: 'varchar', nullable: false })
+  merchantName: string;
 
   @Column({ type: 'varchar', nullable: false })
   title: string;
@@ -20,7 +23,7 @@ export class Request extends BaseTimestampEntity {
   @Column({ type: 'text' })
   description: string;
 
-  @Column({ name: 'proposed_price', type: 'int', default: 0 })
+  @Column({ name: 'proposed_price', type: 'int', default: 100 })
   proposedPrice: number;
 
   @Column({ type: 'timestamptz', nullable: true })
@@ -42,4 +45,7 @@ export class Request extends BaseTimestampEntity {
 
   @Column({ name: 'map_id', type: 'int', nullable: false })
   mapId: number;
+
+  @Column({ name: 'selected_response_id', type: 'uuid', nullable: true })
+  selectedResponseId?: string;
 }
