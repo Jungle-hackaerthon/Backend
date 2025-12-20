@@ -1,0 +1,138 @@
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  WebSocketServer,
+  ConnectedSocket,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { MapService } from './map.service';
+import { MapJoinDto } from './dto/map-join.dto';
+import { MapMoveDto } from './dto/map-move.dto';
+import { socketConfig } from '../../config/socket.config';
+
+@WebSocketGateway({
+  namespace: '/map',
+  ...socketConfig,
+})
+export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+
+  constructor(private readonly mapService: MapService) {}
+
+  handleConnection(client: Socket) {
+    console.log(`Map client connected: ${client.id}`);
+    // TODO: JWT 인증 확인
+    // const token = client.handshake.auth.token;
+  }
+
+  handleDisconnect(client: Socket) {
+    console.log(`Map client disconnected: ${client.id}`);
+
+    const user = this.mapService.leaveMap(client.id);
+    if (user) {
+      // 같은 organization의 다른 유저들에게 퇴장 알림
+      client.broadcast.to(user.organizationId).emit('user:left', {
+        userId: user.userId,
+      });
+    }
+  }
+
+  @SubscribeMessage('map:join')
+  handleJoinMap(
+    @MessageBody() joinDto: MapJoinDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    // TODO: JWT에서 userId, nickname 추출
+    const userId = client.id; // 임시: socket.id 사용
+    const nickname = `User_${client.id.substring(0, 5)}`; // 임시 닉네임
+
+    // 맵 입장
+    const userPosition = this.mapService.joinMap(
+      client.id,
+      userId,
+      nickname,
+      joinDto.organizationId,
+      joinDto.x,
+      joinDto.y,
+    );
+
+    // Socket.IO room 입장
+    client.join(joinDto.organizationId);
+
+    // 현재 접속 중인 유저 목록 전송 (본인 제외)
+    const users = this.mapService
+      .getUsersByOrganization(joinDto.organizationId)
+      .filter((u) => u.socketId !== client.id)
+      .map((u) => ({
+        userId: u.userId,
+        nickname: u.nickname,
+        x: u.x,
+        y: u.y,
+        direction: u.direction,
+      }));
+
+    client.emit('users:list', users);
+
+    // 다른 유저들에게 새 유저 입장 알림
+    client.broadcast.to(joinDto.organizationId).emit('user:joined', {
+      userId: userPosition.userId,
+      nickname: userPosition.nickname,
+      x: userPosition.x,
+      y: userPosition.y,
+      direction: userPosition.direction,
+    });
+
+    return { success: true };
+  }
+
+  @SubscribeMessage('map:move')
+  handleMove(
+    @MessageBody() moveDto: MapMoveDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const updatedUser = this.mapService.moveUser(
+      client.id,
+      moveDto.x,
+      moveDto.y,
+      moveDto.direction,
+    );
+
+    // 연결해제된 상태일 가능성
+    if (!updatedUser) {
+      return { success: false, message: 'User not found in map' };
+    }
+
+    // 같은 organization의 다른 유저들에게 이동 알림
+    client.broadcast.to(updatedUser.organizationId).emit('user:moved', {
+      userId: updatedUser.userId,
+      x: updatedUser.x,
+      y: updatedUser.y,
+      direction: updatedUser.direction,
+    });
+
+    return { success: true };
+  }
+
+  @SubscribeMessage('map:leave')
+  handleLeaveMap(@ConnectedSocket() client: Socket) {
+    const user = this.mapService.leaveMap(client.id);
+
+    if (user) {
+      // Socket.IO room 퇴장
+      client.leave(user.organizationId);
+
+      // 다른 유저들에게 퇴장 알림
+      client.broadcast.to(user.organizationId).emit('user:left', {
+        userId: user.userId,
+      });
+
+      return { success: true };
+    }
+
+    return { success: false, message: 'User not found in map' };
+  }
+}
