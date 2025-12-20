@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS request_responses;
 DROP TABLE IF EXISTS requests;
 DROP TABLE IF EXISTS auction_bids;
 DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS maps;
 DROP TABLE IF EXISTS users;
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -17,13 +18,25 @@ CREATE TABLE users (
     hashed_password VARCHAR(255) NOT NULL,
     avatar_url    VARCHAR(500)   NOT NULL DEFAULT 'default-avatar.png',
     point_balance INTEGER        NOT NULL DEFAULT 0,
-    x_position    DOUBLE PRECISION,
-    y_position    DOUBLE PRECISION,
+
+    -- 위치 정보
+    current_map_id UUID REFERENCES maps(id),    -- 현재 있는 맵
+    x_position     DOUBLE PRECISION,           -- 맵 내 X
+    y_position     DOUBLE PRECISION,           -- 맵 내 Y
+
     is_online     BOOLEAN        NOT NULL DEFAULT FALSE,
     last_login_at TIMESTAMPTZ,
     created_at    TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ
     CHECK (point_balance >= 0);
+);
+
+CREATE TABLE maps (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        VARCHAR(100) NOT NULL,      -- 맵 이름 (로비, 1층, 회의실 등)
+    image_url   TEXT NOT NULL,              -- 배경 이미지 or 타일맵 리소스
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    -- 필요하면 width/height, spawn 위치 등 추가
 );
 
 CREATE TABLE products (
@@ -123,3 +136,7 @@ CREATE INDEX idx_messages_room_created
 
 CREATE INDEX idx_point_transactions_user
     ON point_transactions(user_id);
+
+-- 맵별 온라인 유저 조회 인덱스
+CREATE INDEX idx_users_current_map_online
+    ON users(current_map_id, is_online);

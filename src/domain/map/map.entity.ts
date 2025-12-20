@@ -1,17 +1,15 @@
-import { Column, Entity, UpdateDateColumn } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseTimestampEntity } from '../../common/base.entity.js';
+import { User } from '../users/user.entity';
 
-@Entity('rooms')
-export class Room extends BaseTimestampEntity {
-  @Column()
+@Entity('maps')
+export class Map extends BaseTimestampEntity {
+  @Column({ type: 'varchar', length: 100, nullable: false })
   name: string;
 
-  @Column({ type: 'int', default: 1000 })
-  width: number;
+  @Column({ type: 'text', nullable: false })
+  imageUrl: string;
 
-  @Column({ type: 'int', default: 1000 })
-  height: number;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @OneToMany(() => User, (user) => user.currentMap)
+  users: User[];
 }

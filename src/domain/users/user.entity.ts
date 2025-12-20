@@ -1,5 +1,12 @@
-import { Column, Entity } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  UpdateDateColumn,
+} from 'typeorm';
 import { BaseTimestampEntity } from '../../common/base.entity';
+import { Map } from '../map/map.entity';
 
 @Entity('users')
 export class User extends BaseTimestampEntity {
@@ -17,6 +24,11 @@ export class User extends BaseTimestampEntity {
 
   @Column({ name: 'point_balance', type: 'int', default: 0 })
   pointBalance: number;
+
+  // 위치 정보
+  @ManyToOne(() => Map, { nullable: true })
+  @JoinColumn({ name: 'current_map_id' })
+  currentMap?: Map;
 
   @Column({ name: 'x_position', type: 'double precision', nullable: true })
   xPosition?: number;
