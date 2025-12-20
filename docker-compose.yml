@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hackerton-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hackerton
+      POSTGRES_USER: hackerton
+      POSTGRES_PASSWORD: hackerton123
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Redis (선택사항 - Socket.IO adapter용)
+  # 사용하려면 주석 해제하고 .env에 REDIS_URL 설정
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: hackerton-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - '6379:6379'
+  #   volumes:
+  #     - redis_data:/data
+
+volumes:
+  postgres_data:
+  # redis_data:
