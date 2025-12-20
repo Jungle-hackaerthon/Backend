@@ -10,7 +10,7 @@ import { ProductsModule } from './domain/products/products.module';
 import { RequestsModule } from './domain/requests/requests.module';
 import { ChatsModule } from './chats/chats.module';
 import { PointsModule } from './domain/points/points.module';
-import { NotificationsModule } from './domain/notifications/notifications.module.js';
+import { NotificationsModule } from './domain/notifications/notifications.module';
 
 @Module({
   imports: [

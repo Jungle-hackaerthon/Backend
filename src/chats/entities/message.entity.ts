@@ -5,7 +5,7 @@ import { User } from '../../domain/users/user.entity';
 
 @Entity('messages')
 export class Message extends BaseTimestampEntity {
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true }) // Preserve messages when user is deleted, set sender to null
   @JoinColumn({ name: 'sender_id' })
   sender: User;
 

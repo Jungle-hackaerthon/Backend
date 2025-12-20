@@ -86,7 +86,7 @@ CREATE TABLE chat_rooms (
 
 CREATE TABLE messages (
     id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    sender_id   UUID         NOT NULL REFERENCES users(id)      ON DELETE CASCADE,
+    sender_id   UUID         REFERENCES users(id)      ON DELETE SET NULL, -- Preserve messages when user is deleted, set sender to null
     room_id     UUID         NOT NULL REFERENCES chat_rooms(id) ON DELETE CASCADE,
     content     TEXT         NOT NULL,
     message_type VARCHAR(20) NOT NULL DEFAULT 'TEXT', -- ENUM(TEXT, IMAGE)
