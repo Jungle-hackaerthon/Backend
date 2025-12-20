@@ -57,6 +57,9 @@ export class ChatsService {
     const currentUser = await this.usersRepository.findOne({
       where: { id: userId },
     });
+    if (!currentUser) {
+      throw new NotFoundException('현재 사용자가 존재하지 않습니다.');
+    }
 
     const newRoom = this.chatRoomsRepository.create();
     newRoom.user1 = currentUser;
@@ -236,6 +239,10 @@ export class ChatsService {
     const sender = await this.usersRepository.findOne({
       where: { id: senderId },
     });
+
+    if (!sender) {
+      throw new NotFoundException('메시지 전송자가 존재하지 않습니다.');
+    }
 
     // 메시지 저장
     const message = this.messagesRepository.create();

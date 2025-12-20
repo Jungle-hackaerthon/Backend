@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { envConfig } from './config/env.config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -24,6 +25,15 @@ async function bootstrap() {
     }),
   );
 
+  const config = new DocumentBuilder()
+    .setTitle('API Docs')
+    .setDescription('My API documentation')
+    .setVersion('1.0')
+    .addBearerAuth() // Auth 추가 가능
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
   // Socket.IO Adapter 설정
   app.useWebSocketAdapter(new IoAdapter(app));
 

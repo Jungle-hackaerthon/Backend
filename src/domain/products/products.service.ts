@@ -155,7 +155,9 @@ export class ProductsService {
     }
 
     product.status = status;
-    return await this.productsRepository.save(product);
+    const updated = await this.productsRepository.save(product);
+    this.mapGateway.emitProductUpdated(product.mapId.toString(), updated);
+    return updated;
   }
 
   /* AuctionBid 취소 후 알림 전송 */
@@ -169,8 +171,11 @@ export class ProductsService {
       throw new NotFoundException('Auction bid not found');
     }
 
+    const mapId = bid.product.mapId.toString();
+    const bidIdToRemove = bid.id;
+
     await this.auctionBidsRepository.remove(bid);
-    this.mapGateway.emitBidCreated(bid.product.mapId.toString(), bid);
+    this.mapGateway.emitBidRemoved(mapId, bidIdToRemove);
   }
 
   /**
