@@ -14,6 +14,25 @@ import { MapMoveDto } from './dto/map-move.dto';
 import { socketConfig } from '../../config/socket.config';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
+import { Product } from '../products/entities/product.entity.js';
+import { AuctionBid } from '../products/entities/auction-bid.entity.js';
+
+export enum MapSocketEvents {
+  // Client -> Server (구독 메시지)
+  MAP_JOIN = 'map:join',
+  MAP_LEAVE = 'map:leave',
+  MAP_MOVE = 'map:move',
+  // Server -> Client (발행 메시지)
+  USER_JOINED = 'user:joined',
+  USER_LEFT = 'user:left',
+  USER_MOVED = 'user:moved',
+  USERS_LIST = 'users:list',
+  PRODUCT_CREATED = 'product:created',
+  PRODUCT_UPDATED = 'product:updated',
+  PRODUCT_REMOVED = 'product:removed',
+  BID_CREATED = 'bid:created',
+  BID_REMOVED = 'bid:removed',
+}
 
 @WebSocketGateway({
   namespace: '/map',

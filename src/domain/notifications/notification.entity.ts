@@ -14,9 +14,6 @@ export class Notification extends BaseTimestampEntity {
   @Column({ type: 'text' })
   message: string;
 
-  @Column({ name: 'notification_type', type: 'varchar' })
-  notificationType: string;
-
   @Column({ name: 'is_read', default: false })
   isRead: boolean;
 }
