@@ -1,17 +1,8 @@
-import { Column, Entity, UpdateDateColumn } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import { BaseTimestampEntity } from '../../common/base.entity.js';
 
-@Entity('rooms')
-export class Room extends BaseTimestampEntity {
-  @Column()
-  name: string;
-
-  @Column({ type: 'int', default: 1000 })
-  width: number;
-
-  @Column({ type: 'int', default: 1000 })
-  height: number;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+@Entity('maps')
+export class Map extends BaseTimestampEntity {
+  @Column({ type: 'varchar', length: 500, nullable: false })
+  imageUrl: string;
 }

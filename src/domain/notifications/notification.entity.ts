@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { User } from '../../users/user.entity';
-import { BaseTimestampEntity } from '../../../common/base.entity.js';
+import { User } from '../users/user.entity';
+import { BaseTimestampEntity } from '../../common/base.entity.js';
 
 @Entity('notifications')
 export class Notification extends BaseTimestampEntity {
