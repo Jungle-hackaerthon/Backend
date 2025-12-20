@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from './notification.entity';
-import { from, Observable, Subject } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { resolveNotificationMessage } from './utils/notification-message.util';
 
 @Injectable()
 export class NotificationsService {
@@ -16,16 +17,19 @@ export class NotificationsService {
   subscribe(userId: string): Observable<Notification> {
     const existing = this.getStream(userId);
     if (existing) {
-      return existing;
+      return existing.asObservable();
     }
 
-    return this.createStream(userId);
+    return this.createStream(userId).asObservable();
   }
   /* 알림 생성 */
   async create(userId: string, message: string): Promise<Notification> {
+    const { title, message: formattedMessage } =
+      resolveNotificationMessage(message);
     const notification = this.notificationsRepository.create({
       user: { id: userId },
-      message,
+      title,
+      message: formattedMessage,
     });
     const saved = await this.notificationsRepository.save(notification);
     const stream = this.userStreams.get(userId);
@@ -37,10 +41,18 @@ export class NotificationsService {
   }
 
   /* 알림 읽음 처리 */
-  markAsRead(notificationId: string): Promise<void> {
-    return this.notificationsRepository
-      .update({ id: notificationId }, { isRead: true })
-      .then(() => {});
+  async markAsRead(notificationId: string, userId: string): Promise<void> {
+    const notification = await this.notificationsRepository.findOne({
+      where: { id: notificationId },
+      relations: ['user'],
+    });
+
+    if (notification && notification.user.id === userId) {
+      await this.notificationsRepository.update(
+        { id: notificationId },
+        { isRead: true },
+      );
+    }
   }
 
   unsubscribe(userId: string) {

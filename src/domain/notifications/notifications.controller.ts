@@ -13,6 +13,7 @@ import { finalize } from 'rxjs/operators';
 import { Notification } from './notification.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserId } from '../../common/decorators/user.decorator';
+import { CreateNotificationDto } from './dto/create-notification.dto.js';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -37,7 +38,13 @@ export class NotificationsController {
 
   /* 테스트용 알림 생성 - 실제론 다른 모듈에서 불러옴 */
   @Post()
-  async create(@UserId() userId: string, @Param('message') message: string) {
-    return this.notificationsService.create(userId, message);
+  async create(
+    @UserId() userId: string,
+    @Body() createNotificationDto: CreateNotificationDto,
+  ) {
+    return this.notificationsService.create(
+      userId,
+      createNotificationDto.message,
+    );
   }
 }
