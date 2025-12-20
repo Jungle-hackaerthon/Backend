@@ -18,7 +18,7 @@ export class PointTransaction extends BaseTimestampEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'counterparty_id' })
   counterparty: User;
 

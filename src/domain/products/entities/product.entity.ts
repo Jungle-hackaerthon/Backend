@@ -14,13 +14,13 @@ export class Product extends BaseTimestampEntity {
   @JoinColumn({ name: 'seller_id' })
   seller: User;
 
-  @Column({ name: 'map_id', type: 'int' })
+  @Column({ name: 'map_id', type: 'int', nullable: false })
   mapId: number;
 
-  @Column({ name: 'x_position', type: 'int', nullable: true })
+  @Column({ name: 'x_position', type: 'int', nullable: false })
   xPosition: number;
 
-  @Column({ name: 'y_position', type: 'int', nullable: true })
+  @Column({ name: 'y_position', type: 'int', nullable: false })
   yPosition: number;
 
   @Column()
@@ -44,8 +44,8 @@ export class Product extends BaseTimestampEntity {
   })
   status: ProductStatus;
 
-  @Column({ name: 'start_price', type: 'int', nullable: true })
-  start_price: number;
+  @Column({ name: 'start_price', type: 'int', default: 0, nullable: false })
+  startPrice: number;
 
   @Column({ type: 'timestamptz', nullable: true })
   deadline?: Date;

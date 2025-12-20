@@ -5,6 +5,6 @@ export class CreateAuctionBidDto {
   bidderId: string;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   bidAmount: number;
 }

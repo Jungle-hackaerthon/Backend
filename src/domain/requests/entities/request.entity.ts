@@ -32,7 +32,7 @@ export class Request extends BaseTimestampEntity {
     default: RequestStatus.IN_PROGRESS,
     nullable: false,
   })
-  status?: RequestStatus;
+  status: RequestStatus;
 
   @Column({ name: 'x_position', type: 'int', nullable: false })
   xPosition: number;

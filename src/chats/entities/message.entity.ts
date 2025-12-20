@@ -7,7 +7,7 @@ import { BaseTimestampEntity } from '../../common/base.entity.js';
 export class Message extends BaseTimestampEntity {
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true }) // Preserve messages when user is deleted, set sender to null
   @JoinColumn({ name: 'sender_id' })
-  sender: User;
+  sender: User | null;
 
   @ManyToOne(() => ChatRoom, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'room_id' })

@@ -3,30 +3,33 @@ import {
   IsArray,
   IsDate,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Min,
+  MinDate,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProductDto {
+  @IsNotEmpty()
   @IsString()
   sellerId: string;
 
   @IsInt()
   mapId: number;
 
-  @IsOptional()
   @IsInt()
   xPosition?: number;
 
-  @IsOptional()
   @IsInt()
   yPosition?: number;
 
+  @IsNotEmpty()
   @IsString()
   title: string;
 
+  @IsNotEmpty()
   @IsString()
   description: string;
 
@@ -52,5 +55,6 @@ export class CreateProductDto {
   @IsOptional()
   @Type(() => Date)
   @IsDate()
+  @MinDate(new Date())
   deadline?: Date;
 }

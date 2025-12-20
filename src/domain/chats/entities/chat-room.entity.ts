@@ -1,4 +1,4 @@
-import { BaseTimestampEntity } from '../../../common/base.entity.js';
+import { BaseTimestampEntity } from '../../../common/base.entity';
 import { User } from '../../users/user.entity';
 import { Entity, JoinColumn, ManyToOne } from 'typeorm';
 

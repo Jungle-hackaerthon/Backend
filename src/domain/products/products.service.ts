@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuctionBid } from './entities/auction-bid.entity';
@@ -27,7 +31,7 @@ export class ProductsService {
       title: dto.title,
       description: dto.description,
       imageUrls: dto.imageUrls,
-      start_price: dto.startPrice,
+      startPrice: dto.startPrice,
       deadline: dto.deadline,
       status: ProductStatus.AVAILABLE,
     });
@@ -62,6 +66,20 @@ export class ProductsService {
 
     if (!product) {
       throw new NotFoundException('Product not found');
+    }
+
+    if (product.status !== ProductStatus.AVAILABLE) {
+      throw new BadRequestException('Product is not available for bidding');
+    }
+
+    if (product.deadline && new Date() > product.deadline) {
+      throw new BadRequestException('Auction has ended');
+    }
+
+    if (dto.bidAmount <= product.startPrice) {
+      throw new BadRequestException(
+        'Bid amount must be higher than start price',
+      );
     }
 
     const bid = this.auctionBidsRepository.create({
