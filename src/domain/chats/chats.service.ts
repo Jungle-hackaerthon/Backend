@@ -319,12 +319,6 @@ export class ChatsService {
     referenceType: ReferenceType,
     referenceId?: string,
   ): Promise<User> {
-    if (!referenceId) {
-      throw new BadRequestException(
-        'PRODUCT 또는 REQUEST 타입의 경우 referenceId가 필요합니다.',
-      );
-    }
-
     if (referenceType === ReferenceType.PRODUCT) {
       const product = await this.productsRepository.findOne({
         where: { id: referenceId },
