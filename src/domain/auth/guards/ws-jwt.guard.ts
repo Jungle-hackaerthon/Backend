@@ -11,7 +11,8 @@ export class WsJwtGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient();
-    let token = client.handshake.headers.auth;
+    const tokenFromAuth = client.handshake.auth?.token as string | undefined;
+    let token = tokenFromAuth || client.handshake.headers.auth;
 
     if (!token) {
       throw new WsException('인증 토큰이 필요합니다.');
