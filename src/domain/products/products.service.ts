@@ -33,7 +33,7 @@ export class ProductsService {
       yPosition: dto.yPosition,
       title: dto.title,
       description: dto.description,
-      imageUrls: dto.imageUrls,
+      imageUrls: dto.imageUrls ?? [],
       startPrice: dto.startPrice,
       deadline: dto.deadline,
       status: ProductStatus.AVAILABLE,

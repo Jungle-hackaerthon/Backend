@@ -14,6 +14,7 @@ import { MapMoveDto } from './dto/map-move.dto';
 import { socketConfig } from '../../config/socket.config';
 import { UseGuards } from '@nestjs/common';
 import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
+<<<<<<< Updated upstream
 import { Product } from '../products/entities/product.entity.js';
 import { AuctionBid } from '../products/entities/auction-bid.entity.js';
 
@@ -34,6 +35,11 @@ export enum MapSocketEvents {
   BID_REMOVED = 'bid:removed',
   AUCTION_ENDED = 'auction:ended',
 }
+=======
+import { MapSocketEvents } from './map.events';
+import { Product } from '../products/entities/product.entity';
+import { AuctionBid } from '../products/entities/auction-bid.entity';
+>>>>>>> Stashed changes
 
 @WebSocketGateway({
   namespace: '/map',

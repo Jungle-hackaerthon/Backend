@@ -1,5 +1,4 @@
 import {
-  ArrayNotEmpty,
   IsArray,
   IsDate,
   IsInt,
@@ -37,10 +36,10 @@ export class CreateProductDto {
   @Min(0)
   price: number;
 
+  @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
   @IsString({ each: true })
-  imageUrls: string[];
+  imageUrls?: string[];
 
   @IsOptional()
   @IsInt()
