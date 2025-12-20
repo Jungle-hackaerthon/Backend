@@ -32,6 +32,7 @@ export enum MapSocketEvents {
   PRODUCT_REMOVED = 'product:removed',
   BID_CREATED = 'bid:created',
   BID_REMOVED = 'bid:removed',
+  AUCTION_ENDED = 'auction:ended',
 }
 
 @WebSocketGateway({
@@ -81,6 +82,18 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitBidRemoved(mapId: string, bidId: string) {
     this.server.to(mapId).emit(MapSocketEvents.BID_REMOVED, { bidId });
+  }
+
+  emitAuctionEnded(
+    mapId: string,
+    data: {
+      productId: string;
+      winnerId: string | null;
+      winningBid: number | null;
+      sellerId: string;
+    },
+  ) {
+    this.server.to(mapId).emit(MapSocketEvents.AUCTION_ENDED, data);
   }
 
   @SubscribeMessage(MapSocketEvents.MAP_JOIN)

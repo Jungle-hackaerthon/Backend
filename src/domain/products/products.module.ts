@@ -5,9 +5,14 @@ import { ProductsService } from './products.service';
 import { AuctionBid } from './entities/auction-bid.entity';
 import { Product } from './entities/product.entity';
 import { MapModule } from '../map/map.module.js';
+import { PointsModule } from '../points/points.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Product, AuctionBid]), MapModule],
+  imports: [
+    TypeOrmModule.forFeature([Product, AuctionBid]),
+    MapModule,
+    PointsModule,
+  ],
   controllers: [ProductsController],
   providers: [ProductsService],
   exports: [ProductsService],

@@ -11,6 +11,8 @@ import { Product, ProductStatus } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-auction-product.dto';
 import { CreateAuctionBidDto } from './dto/create-auction-bid.dto';
 import { MapGateway } from '../map/map.gateway.js';
+import { PointsService } from '../points/points.service.js';
+import { PointSourceType } from '../points/point-transaction.entity.js';
 
 @Injectable()
 export class ProductsService {
@@ -20,6 +22,7 @@ export class ProductsService {
     @InjectRepository(AuctionBid)
     private readonly auctionBidsRepository: Repository<AuctionBid>,
     private readonly mapGateway: MapGateway,
+    private readonly pointsService: PointsService,
   ) {}
 
   async createAuctionProduct(dto: CreateProductDto): Promise<Product> {
@@ -176,6 +179,78 @@ export class ProductsService {
 
     await this.auctionBidsRepository.remove(bid);
     this.mapGateway.emitBidRemoved(mapId, bidIdToRemove);
+  }
+
+  /**
+   * 경매 낙찰 처리
+   * - 최고 입찰자 찾기
+   * - 포인트 거래 (낙찰자 → 판매자)
+   * - Product status SOLD로 변경
+   * - MapGateway로 auction:ended 이벤트 발송
+   */
+  async settleAuction(productId: string): Promise<{
+    product: Product;
+    winnerId: string | null;
+    winningBid: number | null;
+  }> {
+    // 상품 조회
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+      relations: ['seller'],
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (product.status === ProductStatus.SOLD) {
+      throw new BadRequestException('Product is already sold');
+    }
+
+    // 최고 입찰자 찾기
+    const highestBid = await this.auctionBidsRepository.findOne({
+      where: { product: { id: productId } },
+      relations: ['bidder'],
+      order: { bidAmount: 'DESC' },
+    });
+
+    // 입찰자가 없는 경우 - 상품만 SOLD로 변경
+    if (!highestBid) {
+      product.status = ProductStatus.SOLD;
+      const updated = await this.productsRepository.save(product);
+
+      // 이벤트 발송 (낙찰자 없음)
+      this.mapGateway.emitAuctionEnded(product.mapId.toString(), {
+        productId: product.id,
+        winnerId: null,
+        winningBid: null,
+        sellerId: product.seller.id,
+      });
+
+      return {
+        product: updated,
+        winnerId: null,
+        winningBid: null,
+      };
+    }
+
+    // 상품 상태 변경
+    product.status = ProductStatus.SOLD;
+    const updated = await this.productsRepository.save(product);
+
+    // 이벤트 발송
+    this.mapGateway.emitAuctionEnded(product.mapId.toString(), {
+      productId: product.id,
+      winnerId: highestBid.bidder.id,
+      winningBid: highestBid.bidAmount,
+      sellerId: product.seller.id,
+    });
+
+    return {
+      product: updated,
+      winnerId: highestBid.bidder.id,
+      winningBid: highestBid.bidAmount,
+    };
   }
 
   /**

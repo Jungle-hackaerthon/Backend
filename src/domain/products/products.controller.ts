@@ -70,4 +70,14 @@ export class ProductsController {
   cancelAuctionBid(@Param('bidId') bidId: string): Promise<void> {
     return this.productsService.cancelAuctionBid(bidId);
   }
+
+  @Post(':id/settle')
+  @HttpCode(HttpStatus.OK)
+  settleAuction(@Param('id') productId: string): Promise<{
+    product: Product;
+    winnerId: string | null;
+    winningBid: number | null;
+  }> {
+    return this.productsService.settleAuction(productId);
+  }
 }

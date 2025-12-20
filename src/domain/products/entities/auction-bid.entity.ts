@@ -15,6 +15,4 @@ export class AuctionBid extends BaseTimestampEntity {
 
   @Column({ name: 'bid_amount', type: 'int' })
   bidAmount: number;
-
-  // createdAt is inherited
 }
