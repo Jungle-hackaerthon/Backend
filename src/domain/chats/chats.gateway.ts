@@ -129,6 +129,7 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return {
         success: false,
         message: '채팅방 퇴장에 실패했습니다.',
+        error,
       };
     }
   }
