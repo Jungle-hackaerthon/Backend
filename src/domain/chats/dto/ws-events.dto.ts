@@ -1,16 +1,41 @@
-import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { MessageType } from './send-message.dto';
+import { ReferenceType } from '../entities/chat-room.entity';
 
 export class ChatJoinDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  roomId: string;
+  roomId?: string;
+
+  @IsOptional()
+  @IsString()
+  targetUserId?: string;
+
+  @IsOptional()
+  @IsEnum(ReferenceType)
+  referenceType?: ReferenceType;
+
+  @IsOptional()
+  @IsString()
+  referenceId?: string;
 }
 
 export class ChatSendDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  roomId: string;
+  roomId?: string;
+
+  @IsOptional()
+  @IsString()
+  targetUserId?: string;
+
+  @IsOptional()
+  @IsEnum(ReferenceType)
+  referenceType?: ReferenceType;
+
+  @IsOptional()
+  @IsString()
+  referenceId?: string;
 
   @IsNotEmpty()
   @IsString()

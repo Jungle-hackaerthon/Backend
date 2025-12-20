@@ -31,6 +31,8 @@ export class ChatsController {
     const { room, isNew } = await this.chatsService.findOrCreateRoom(
       userId,
       createRoomDto.targetUserId,
+      createRoomDto.referenceType,
+      createRoomDto.referenceId || null,
     );
 
     return {
@@ -49,6 +51,8 @@ export class ChatsController {
           id: room.user2.id,
           nickname: room.user2.nickname,
         },
+        referenceType: room.referenceType,
+        referenceId: room.referenceId,
         createdAt: room.createdAt,
       },
     };

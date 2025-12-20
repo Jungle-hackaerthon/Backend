@@ -43,20 +43,9 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatJoinDto,
   ) {
     const userId = client.data.user.userId;
-    const { roomId } = payload;
     try {
-      // 권한 확인
-      const isParticipant = await this.chatsService.isRoomParticipant(
-        roomId,
-        userId,
-      );
-
-      if (!isParticipant) {
-        return {
-          success: false,
-          message: '채팅방에 접근 권한이 없습니다.',
-        };
-      }
+      // 채팅방 ID resolve 및 권한 검증
+      const roomId = await this.chatsService.validateChatRoom(userId, payload);
 
       // 채팅방 소켓 룸에 join
       await client.join(`room:${roomId}`);
@@ -64,11 +53,12 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return {
         success: true,
         message: '채팅방에 입장했습니다.',
+        data: { roomId },
       };
     } catch (error) {
       return {
         success: false,
-        message: '채팅방 입장에 실패했습니다.',
+        message: error.message || '채팅방 입장에 실패했습니다.',
       };
     }
   }
@@ -82,9 +72,12 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: ChatSendDto,
   ) {
     const userId = client.data.user.userId;
-    const { roomId, content, messageType } = payload;
+    const { content, messageType } = payload;
 
     try {
+      // 채팅방 ID resolve 및 권한 검증
+      const roomId = await this.chatsService.validateChatRoom(userId, payload);
+
       // DB에 메시지 저장
       const savedMessage = await this.chatsService.sendMessage(roomId, userId, {
         content,
@@ -109,7 +102,7 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       return {
         success: false,
-        message: '메시지 전송에 실패했습니다.',
+        message: error.message || '메시지 전송에 실패했습니다.',
       };
     }
   }
