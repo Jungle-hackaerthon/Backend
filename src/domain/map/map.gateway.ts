@@ -40,29 +40,25 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const user = this.mapService.leaveMap(client.id);
     if (user) {
-      // 같은 맵의 다른 유저들에게 퇴장 알림
-      const roomName = `map_${user.mapId}`;
-      client.broadcast.to(roomName).emit(MapSocketEvents.USER_LEFT, {
+      // 같은 organization의 다른 유저들에게 퇴장 알림
+      client.broadcast.to(user.organizationId).emit(MapSocketEvents.USER_LEFT, {
         userId: user.userId,
       });
     }
   }
 
-  // 물건생성 emit
   emitProductCreated(mapId: string, product: Product) {
     this.server.to(mapId).emit(MapSocketEvents.PRODUCT_CREATED, product);
   }
-  // 물건수정 emit
+
   emitProductUpdated(mapId: string, product: Product) {
     this.server.to(mapId).emit(MapSocketEvents.PRODUCT_UPDATED, product);
   }
 
-  // 물건삭제 emit
   emitProductRemoved(mapId: string, productId: string) {
     this.server.to(mapId).emit(MapSocketEvents.PRODUCT_REMOVED, { productId });
   }
 
-  // 물건수정 emit
   emitBidCreated(mapId: string, bid: AuctionBid) {
     this.server.to(mapId).emit(MapSocketEvents.BID_CREATED, bid);
   }
@@ -71,63 +67,31 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(mapId).emit(MapSocketEvents.BID_REMOVED, { bidId });
   }
 
-  emitAuctionEnded(
-    mapId: string,
-    data: {
-      productId: string;
-      winnerId: string | null;
-      winningBid: number | null;
-      sellerId: string;
-    },
-  ) {
-    this.server.to(mapId).emit(MapSocketEvents.AUCTION_ENDED, data);
-  }
-
-  emitRequestCreated(mapId: number, request: any) {
-    const roomName = `map_${mapId}`;
-    this.server.to(roomName).emit(MapSocketEvents.REQUEST_CREATED, request);
-  }
-
-  emitRequestUpdated(mapId: number, request: any) {
-    const roomName = `map_${mapId}`;
-    this.server.to(roomName).emit(MapSocketEvents.REQUEST_UPDATED, request);
-  }
-
-  emitRequestDeleted(mapId: number, requestId: string) {
-    const roomName = `map_${mapId}`;
-    this.server
-      .to(roomName)
-      .emit(MapSocketEvents.REQUEST_DELETED, { id: requestId, mapId });
-  }
-
   @SubscribeMessage(MapSocketEvents.MAP_JOIN)
   handleJoinMap(
     @MessageBody() joinDto: MapJoinDto,
     @ConnectedSocket() client: Socket,
   ) {
     // TODO: JWT에서 userId, nickname 추출
-    const userId = client.data.user.id;
+    const userId = client.id; // 임시: socket.id 사용
     const nickname = client.data.user.nickname;
-
-    const mapId = joinDto.mapId ?? 0;
-    const roomName = `map_${mapId}`;
 
     // 맵 입장
     const userPosition = this.mapService.joinMap(
       client.id,
       userId,
       nickname,
-      mapId,
+      joinDto.organizationId,
       joinDto.x,
       joinDto.y,
     );
 
     // Socket.IO room 입장
-    client.join(roomName);
+    client.join(joinDto.organizationId);
 
     // 현재 접속 중인 유저 목록 전송 (본인 제외)
     const users = this.mapService
-      .getUsersByMap(mapId)
+      .getUsersByOrganization(joinDto.organizationId)
       .filter((u) => u.socketId !== client.id)
       .map((u) => ({
         userId: u.userId,
@@ -140,13 +104,15 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit(MapSocketEvents.USERS_LIST, users);
 
     // 다른 유저들에게 새 유저 입장 알림
-    client.broadcast.to(roomName).emit(MapSocketEvents.USER_JOINED, {
-      userId: userPosition.userId,
-      nickname: userPosition.nickname,
-      x: userPosition.x,
-      y: userPosition.y,
-      direction: userPosition.direction,
-    });
+    client.broadcast
+      .to(joinDto.organizationId)
+      .emit(MapSocketEvents.USER_JOINED, {
+        userId: userPosition.userId,
+        nickname: userPosition.nickname,
+        x: userPosition.x,
+        y: userPosition.y,
+        direction: userPosition.direction,
+      });
 
     return { success: true };
   }
@@ -168,14 +134,15 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { success: false, message: 'User not found in map' };
     }
 
-    // 같은 맵의 다른 유저들에게 이동 알림
-    const roomName = `map_${updatedUser.mapId}`;
-    client.broadcast.to(roomName).emit(MapSocketEvents.USER_MOVED, {
-      userId: updatedUser.userId,
-      x: updatedUser.x,
-      y: updatedUser.y,
-      direction: updatedUser.direction,
-    });
+    // 같은 organization의 다른 유저들에게 이동 알림
+    client.broadcast
+      .to(updatedUser.organizationId)
+      .emit(MapSocketEvents.USER_MOVED, {
+        userId: updatedUser.userId,
+        x: updatedUser.x,
+        y: updatedUser.y,
+        direction: updatedUser.direction,
+      });
 
     return { success: true };
   }
@@ -185,12 +152,11 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = this.mapService.leaveMap(client.id);
 
     if (user) {
-      const roomName = `map_${user.mapId}`;
       // Socket.IO room 퇴장
-      client.leave(roomName);
+      client.leave(user.organizationId);
 
       // 다른 유저들에게 퇴장 알림
-      client.broadcast.to(roomName).emit(MapSocketEvents.USER_LEFT, {
+      client.broadcast.to(user.organizationId).emit(MapSocketEvents.USER_LEFT, {
         userId: user.userId,
       });
 
