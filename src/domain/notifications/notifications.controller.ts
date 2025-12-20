@@ -32,8 +32,11 @@ export class NotificationsController {
   /* 알림 읽음 - 필드하나만 바뀔일 없으니 걍 read */
   @Patch(':notificationId/read')
   @UseGuards(JwtAuthGuard)
-  markAsRead(@Param('notificationId') notificationId: string) {
-    return this.notificationsService.markAsRead(notificationId);
+  markAsRead(
+    @Param('notificationId') notificationId: string,
+    @UserId() userId: string,
+  ) {
+    return this.notificationsService.markAsRead(notificationId, userId);
   }
 
   /* 테스트용 알림 생성 - 실제론 다른 모듈에서 불러옴 */
