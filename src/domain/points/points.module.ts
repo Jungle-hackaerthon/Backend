@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PointsController } from './points.controller';
 import { PointsService } from './points.service';
-import { PointTransaction } from './entities/point-transaction.entity';
+import { PointTransaction } from './point-transaction.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([PointTransaction])],

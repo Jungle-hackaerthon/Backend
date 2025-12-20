@@ -58,7 +58,7 @@ export class ChatsService {
       where: { id: userId },
     });
     if (!currentUser) {
-      throw new BadRequestException('user가 존재하지 않습니다.');
+      throw new NotFoundException('현재 사용자가 존재하지 않습니다.');
     }
 
     const newRoom = this.chatRoomsRepository.create();

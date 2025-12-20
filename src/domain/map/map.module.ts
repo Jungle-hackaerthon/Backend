@@ -12,5 +12,6 @@ import { envConfig } from 'src/config/env.config';
     }),
   ],
   providers: [MapGateway, MapService],
+  exports: [MapGateway],
 })
 export class MapModule {}

@@ -16,6 +16,7 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
   type: 'postgres',
   url: envConfig.databaseUrl,
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  synchronize: true, // TODO: 프로덕션에서는 false로 변경 필요
+  // synchronize: true, // TODO: 프로덕션에서는 false로 변경 필요
+  dropSchema: true,
   logging: false,
 };

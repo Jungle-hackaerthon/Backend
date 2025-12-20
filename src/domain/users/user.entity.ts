@@ -1,12 +1,5 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  UpdateDateColumn,
-} from 'typeorm';
-import { BaseTimestampEntity } from '../../common/base.entity';
-import { Map } from '../map/map.entity';
+import { Column, Entity } from 'typeorm';
+import { BaseTimestampEntity } from '../../common/base.entity.js';
 
 @Entity('users')
 export class User extends BaseTimestampEntity {
@@ -25,18 +18,6 @@ export class User extends BaseTimestampEntity {
   @Column({ name: 'point_balance', type: 'int', default: 0 })
   pointBalance: number;
 
-  // 위치 정보
-  @ManyToOne(() => Map, { nullable: true })
-  @JoinColumn({ name: 'current_map_id' })
-  currentMap?: Map;
-
-  @Column({ name: 'x_position', type: 'double precision', nullable: true })
-  xPosition?: number;
-
-  @Column({ name: 'y_position', type: 'double precision', nullable: true })
-  yPosition?: number;
-
-  @Column({ name: 'is_online', default: false })
-  isOnline: boolean;
-  // 관계는 단방향으로 다른 엔티티에서만 매핑합니다.
+  @Column({ name: 'current_map', type: 'int', nullable: true })
+  currentMap?: number;
 }
