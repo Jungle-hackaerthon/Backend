@@ -4,16 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **hackathon MVP backend** (1-2 days) for a real-time 2D spatial application with posts and 1:1 chat functionality. The frontend uses Canvas (no game engine), and this backend provides REST APIs and Socket.IO for real-time features.
+This is a **hackathon backend** for "100원마켓" - a 2D spatial marketplace application where users can buy/sell products, make requests, chat, and receive points. The frontend uses Canvas (no game engine), and this backend provides REST APIs, Socket.IO for real-time features, and SSE for notifications.
 
-**Tech Stack**: NestJS, TypeScript, Socket.IO, PostgreSQL, TypeORM, Docker
+**Tech Stack**: NestJS, TypeScript, Socket.IO, PostgreSQL, TypeORM, JWT Auth, Swagger, Docker
+
+**Current State**: Core features are implemented including auth, real-time map, chat, products, requests, points, and SSE-based notifications. This is beyond MVP stage with working business logic.
 
 ## Common Commands
 
 ### Development
 
 ```bash
-npm run start:dev          # Start in watch mode
+npm run start:dev          # Start in watch mode (most common)
 npm run start:debug        # Start with debugging
 npm run build              # Build for production
 npm run start:prod         # Run production build
@@ -39,156 +41,206 @@ npm run format             # Format code with Prettier
 ### Docker
 
 ```bash
-docker-compose up -d       # Start PostgreSQL (and Redis if configured)
+docker-compose up -d       # Start PostgreSQL
 docker-compose down        # Stop services
 ```
 
+### Swagger API Docs
+
+After starting the server, API documentation is available at:
+- http://localhost:3000/docs
+
 ## Architecture
 
-### Module Structure
+### Application Setup
 
-The application follows NestJS modular architecture with domain-driven design:
+- **Global prefix**: `/api` for all REST endpoints
+- **CORS**: Enabled for all origins (should be restricted in production)
+- **Validation**: Global ValidationPipe with transform and whitelist enabled
+- **Swagger**: Auto-generated API docs at `/docs` with Bearer auth support
+- **TypeORM sync**: `synchronize: true` (hackathon mode - DO NOT use in production)
 
-- **`realtime/`** - Socket.IO gateway for real-time avatar movement
-  - Uses namespace `/realtime`
-  - Handles: `join_room`, `move`, `disconnect` events
-  - Redis adapter support prepared (commented out for MVP)
+### Domain-Driven Module Structure
 
-- **`rooms/`** - Room/space management service
-  - Manages 2D spatial rooms where users interact
+The application follows NestJS modular architecture with domain modules under `src/domain/`:
 
-- **`posts/`** - REST API for posts/boards
-  - CRUD operations for posts within rooms
+#### **Auth Module** (`/domain/auth/`)
+- JWT-based authentication (1h token expiry)
+- Passport JWT strategy with guards (`JwtAuthGuard`, `WsJwtGuard`)
+- Endpoints: signup, login, logout
+- Initial point grant: 1000 points on signup
+- bcrypt password hashing (salt rounds: 10)
 
-- **`dm/`** - 1:1 chat via Socket.IO
-  - Separate gateway for direct messaging
-  - Manages DM threads and messages
+#### **Map Module** (`/domain/map/`)
+- Socket.IO gateway at `/map` namespace
+- Real-time user position tracking and synchronization
+- NPC merchant updates (create/update/delete broadcasts)
+- Auction bid events and auction end notifications
+- Events: `map:join`, `map:move`, `map:leave` (client → server)
+- Events: `users:list`, `user:joined`, `user:moved`, `user:left` (server → client)
+- Events: `merchant:created/updated/deleted`, `auction:bid/ended` (server → client)
 
-- **`entities/`** - TypeORM entities (shared across modules)
-  - `user.entity.ts` - User accounts
-  - `room.entity.ts` - Spatial rooms
-  - `post.entity.ts` - Posts/boards
-  - `dm-thread.entity.ts` - DM conversations
-  - `dm-message.entity.ts` - Individual DM messages
+#### **Chats Module** (`/domain/chats/`)
+- Dual interface: REST API + Socket.IO gateway at `/chat` namespace
+- 1:1 chat rooms with automatic room creation/retrieval
+- All messages saved to DB regardless of transmission method (REST or WebSocket)
+- WebSocket events: `chat:join`, `chat:send`, `chat:leave` (client → server), `chat:message` (server → client)
+- REST endpoints: create/get rooms, list rooms, get/send messages
 
-- **`config/`** - Configuration modules
-  - `env.config.ts` - Environment variable management
-  - `socket.config.ts` - Socket.IO configuration
+#### **Products Module** (`/domain/products/`)
+- Product listings with map positioning (x, y coordinates, mapId)
+- Status: AVAILABLE, RESERVED, SOLD
+- Auction system with bids and deadlines
+- Image URLs stored as text array
 
-- **`common/`** - Shared utilities
-  - `constants/` - Application constants
-  - `decorators/` - Custom decorators
-  - `utils/` - Helper functions
+#### **Requests Module** (`/domain/requests/`)
+- User request system with proposed prices
+- Request responses from helpers
+- Status: IN_PROGRESS, COMPLETED, CANCELED
+- Map positioning for location-based requests
 
-### TypeORM Configuration
+#### **Notifications Module** (`/domain/notifications/`)
+- **SSE-based** real-time notifications (not Socket.IO)
+- In-memory RxJS Subject streams per user
+- Auto-formatted message parsing via `resolveNotificationMessage` utility
+- Endpoints: `GET /api/notifications/stream/:userId` (SSE), `PATCH /api/notifications/:id/read`
+- Stream cleanup on finalize
 
-- **synchronize: true** - Auto-sync schema (hackathon mode, DO NOT use in production)
-- Connection configured via `DATABASE_URL` environment variable
-- All entities in `src/entities/` are auto-loaded
+#### **Points Module** (`/domain/points/`)
+- Point transaction tracking
+- Tracks counterparty and source type (PRODUCT, AUCTION, REQUEST)
+- User point balance stored in User entity
+
+#### **Users Module** (`/domain/users/`)
+- User profiles with avatars, nicknames, point balances
+- Current map tracking (mapId stored as integer, non-relational)
+
+### Shared Infrastructure
+
+#### **Entities** (`/src/domain/*/entities/`, `/src/chats/entities/`)
+- All entities extend `BaseEntity` with `id` (UUID), `createdAt`, `updatedAt`
+- Entities scattered across domain modules (not centralized)
+- Key entities: User, Product, AuctionBid, Request, RequestResponse, ChatRoom, Message, Notification, PointTransaction
+
+#### **Common** (`/src/common/`)
+- `base.entity.ts` - Base entity with UUID primary key and timestamps
+- `decorators/user.decorator.ts` - `@UserId()` decorator extracts user ID from JWT
+- `constants/notification-event-type.ts` - Notification event type constants
+
+#### **Config** (`/src/config/`)
+- `env.config.ts` - Environment configuration (PORT, DATABASE_URL, JWT secrets)
+- `socket.config.ts` - Socket.IO configuration (prepared for Redis adapter, currently commented out)
+
+### Database Schema
+
+PostgreSQL with TypeORM. Key constraints:
+- Chat rooms: `CONSTRAINT chk_chat_rooms_order CHECK (user1_id < user2_id)` ensures unique 1:1 rooms
+- Point balance: `CHECK (point_balance >= 0)`
+- Point transactions: `CHECK (amount > 0)`
+- Foreign keys with appropriate CASCADE/SET NULL behaviors
+- See `schema.sql` for complete DDL
 
 ### Socket.IO Architecture
 
-Two separate gateways:
+Three separate namespaces:
+1. **/map** - User positioning, NPC merchants, auction events
+2. **/chat** - 1:1 messaging (with REST API fallback)
+3. **/notification** - NOT used (notifications use SSE instead)
 
-1. **RealtimeGateway** (`/realtime` namespace) - Avatar movement, room presence
-2. **DmGateway** - Direct messaging between users
+**Authentication**: All Socket.IO connections require JWT in `handshake.auth.token`
 
-Redis adapter configuration is prepared but commented out - can be enabled for horizontal scaling.
+**Redis Adapter**: Prepared but commented out in code - uncomment for horizontal scaling
 
 ## Key Conventions
 
-### Entity Design
+### Authentication Patterns
 
-- Entities are minimal for MVP
-- All entities include TODO comments indicating future implementation points
-- Use `class-validator` decorators for DTOs
-- Use `class-transformer` for serialization
+- REST endpoints: Use `@UseGuards(JwtAuthGuard)` and `@UserId()` decorator
+- WebSocket handlers: Use `WsJwtGuard` for Socket.IO events
+- JWT payload: `{ sub: userId, email, nickname }`
 
-### Socket Event Patterns
+### DTO Handling
 
-- Event handlers are declared but implementation details are marked with TODOs
-- DTOs in `dto/` folders validate incoming Socket.IO payloads
-- Use typed event interfaces for type safety
+- **CRITICAL ANTI-PATTERN**: Do NOT destructure or reconstruct DTOs in controllers before passing to services
+  - Bad: `service.method(dto.id, { field1: dto.field1 })`
+  - Good: `service.method(dto)`
+- All DTOs use `class-validator` decorators
+- Global ValidationPipe applies automatic transformation and whitelist
+
+### Response Format
+
+Many endpoints return structured responses:
+```typescript
+{
+  success: boolean,
+  message: string,
+  data: { ... }
+}
+```
 
 ### Code Style
 
-- ESLint with TypeScript recommended config
-- Prettier with single quotes, trailing commas
-- No explicit `any` warnings (can be used sparingly)
-- Floating promises generate warnings
-- **ANTI-PATTERN**: Do not destructure or reconstruct DTOs in controllers before passing to services. Pass DTOs directly to service methods.
-  - Bad: `service.method(dto.id, { field1: dto.field1, field2: dto.field2 })`
-  - Good: `service.method(dto)`
+- ESLint with TypeScript recommended config (see `eslint.config.mjs`)
+- Disabled rules: `no-explicit-any`, `no-floating-promises`, `no-unsafe-*` rules
+- Prettier with `endOfLine: 'auto'`
+- Single quotes, trailing commas (Prettier default)
+- Unused vars generate warnings (not errors)
 
 ## Environment Variables
 
-Required variables (see `.env`):
+Required (see `.env.example`):
 
-- `DATABASE_URL` - PostgreSQL connection string
-- `PORT` - Server port (default: 3000)
-- `REDIS_URL` - (Optional) Redis connection for Socket.IO adapter
+```bash
+PORT=3000
+NODE_ENV=development
+DATABASE_URL=postgresql://hackerton:hackerton123@localhost:5432/hackerton
+JWT_SECRET=your-super-secret-key-change-in-production
+JWT_EXPIRES_IN=1h
+# REDIS_URL=redis://localhost:6379  # Optional for Socket.IO scaling
+```
 
-## Implementation Notes
+## API Documentation
 
-### Current State (Skeleton Only)
+The project includes detailed API specs in markdown:
+- `authapi.md` - Authentication endpoints
+- `chatapi.md` - Chat REST + WebSocket API
+- `mapapi.md` - Map Socket.IO events (includes merchant/auction)
 
-- Project structure is complete
-- Entities have basic columns
-- Socket.IO gateways have event signatures
-- Services/controllers are scaffolded
-- **No business logic implemented yet**
-
-### Ready for Implementation
-
-The skeleton is designed so you can immediately add:
-
-1. Socket.IO event handlers in gateways
-2. Service methods for business logic
-3. REST endpoints in controllers
-4. Entity relationships and additional fields
-5. Frontend integration
-
-### What's Deliberately Excluded
-
-- Authentication/authorization (add later if needed)
-- Test implementations (scaffolds exist)
-- Detailed validation rules
-- Error handling middleware
-- Rate limiting
+These docs provide request/response examples and event payloads for frontend integration.
 
 ## Development Workflow
 
-1. **Start dependencies**: `docker-compose up -d`
+1. **Start database**: `docker-compose up -d`
 2. **Start dev server**: `npm run start:dev`
-3. **Implement features** in this order (recommended):
-   - Complete entity relationships
-   - Implement room service logic
-   - Add Socket.IO event handlers
-   - Build REST endpoints for posts
-   - Add DM functionality
-4. **Test with frontend** Canvas application
+3. **Access Swagger docs**: http://localhost:3000/docs
+4. **Frontend connects to**:
+   - REST API: `http://localhost:3000/api/*`
+   - Socket.IO Map: `ws://localhost:3000/map`
+   - Socket.IO Chat: `ws://localhost:3000/chat`
+   - SSE Notifications: `GET http://localhost:3000/api/notifications/stream/:userId`
 
-## Socket.IO Integration
+## Important Implementation Notes
 
-### Realtime Gateway Events
+### Notification System Uses SSE, Not WebSockets
+- Notifications use Server-Sent Events (SSE) via `@Sse()` decorator
+- In-memory RxJS Subject per user (lost on server restart - consider Redis for production)
+- Frontend should use EventSource API, not Socket.IO client
 
-```typescript
-// join_room - User enters a spatial room
-// move - User avatar position update
-// disconnect - User leaves
-```
+### Map IDs Are Non-Relational
+- `mapId` stored as INTEGER in users, products, requests
+- No foreign key constraint - managed at application level
+- Coordinate system: x/y positions stored as INTEGER or DOUBLE PRECISION
 
-### DM Gateway Events
+### Chat Room Uniqueness
+- Two users always have exactly one chat room
+- Database enforces ordering: `user1_id < user2_id`
+- Service layer handles swapping user IDs before query
 
-```typescript
-// (To be defined during implementation)
-```
+### TypeORM Synchronize Mode
+- `synchronize: true` auto-syncs schema changes
+- Convenient for rapid development but NEVER use in production
+- Use migrations for production deployments
 
-Frontend should connect to:
-
-- `http://localhost:3000/realtime` - For avatar/room features
-- Default namespace - For DM features
-
-## Database Schema
-
-All entities use TypeORM decorators. Current minimal schema is in `src/entities/`. Relationships and additional fields should be added as implementation progresses. Use migrations for production, but synchronize is enabled for rapid hackathon iteration.
+### Testing
+- Test scaffolds exist but most are unimplemented
+- Focus on manual testing via Swagger and Socket.IO clients during hackathon
