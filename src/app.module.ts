@@ -3,20 +3,26 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { typeOrmConfig } from './config/env.config';
-import { RealtimeModule } from './realtime/realtime.module';
-import { RoomsModule } from './rooms/rooms.module';
-import { PostsModule } from './posts/posts.module';
-import { DmModule } from './dm/dm.module';
-import { MapModule } from './map/map.module';
+import { RealtimeModule } from './infra/realtime/realtime.module';
+import { MapModule } from './domain/map/map.module';
+import { UsersModule } from './domain/users/users.module';
+import { ProductsModule } from './domain/products/products.module';
+import { RequestsModule } from './domain/requests/requests.module';
+import { ChatsModule } from './chats/chats.module';
+import { PointsModule } from './domain/points/points.module';
+import { NotificationsModule } from './domain/notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeOrmConfig),
     RealtimeModule,
-    RoomsModule,
-    PostsModule,
-    DmModule,
     MapModule,
+    UsersModule,
+    ProductsModule,
+    RequestsModule,
+    ChatsModule,
+    PointsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
