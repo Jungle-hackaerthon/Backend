@@ -18,14 +18,14 @@ export class CreateRoomDto {
     enum: ReferenceType,
     required: false,
   })
-  referenceType?: ReferenceType;
+  referenceType: ReferenceType;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @ApiProperty({
     description: 'The ID of the entity this chat is related to',
     example: 'product-uuid-1234',
     required: false,
   })
-  referenceId?: string;
+  referenceId: string;
 }

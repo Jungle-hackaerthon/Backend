@@ -7,11 +7,13 @@ import { ChatsGateway } from './chats.gateway';
 import { ChatRoom } from './entities/chat-room.entity';
 import { Message } from './entities/message.entity';
 import { User } from '../users/user.entity';
+import { Product } from '../products/entities/product.entity';
+import { Request } from '../requests/entities/request.entity';
 import { envConfig } from '../../config/env.config';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatRoom, Message, User]),
+    TypeOrmModule.forFeature([ChatRoom, Message, User, Product, Request]),
     JwtModule.register({
       secret: envConfig.jwtSecret,
       signOptions: { expiresIn: '2h' },
