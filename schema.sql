@@ -6,7 +6,6 @@ DROP TABLE IF EXISTS request_responses;
 DROP TABLE IF EXISTS requests;
 DROP TABLE IF EXISTS auction_bids;
 DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS maps;
 DROP TABLE IF EXISTS users;
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -18,43 +17,25 @@ CREATE TABLE users (
     hashed_password VARCHAR(255) NOT NULL,
     avatar_url    VARCHAR(500)   NOT NULL DEFAULT 'default-avatar.png',
     point_balance INTEGER        NOT NULL DEFAULT 0,
-
-    -- 위치 정보
-    current_map_id UUID REFERENCES maps(id),    -- 현재 있는 맵
-    x_position     DOUBLE PRECISION,           -- 맵 내 X
-    y_position     DOUBLE PRECISION,           -- 맵 내 Y
-
-    is_online     BOOLEAN        NOT NULL DEFAULT FALSE,
-    last_login_at TIMESTAMPTZ,
+    current_map   INTEGER,                           -- 현재 맵 ID (관계형 아님)
     created_at    TIMESTAMPTZ    NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ
-    CHECK (point_balance >= 0);
-);
-
-CREATE TABLE maps (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        VARCHAR(100) NOT NULL,      -- 맵 이름 (로비, 1층, 회의실 등)
-    image_url   TEXT NOT NULL,              -- 배경 이미지 or 타일맵 리소스
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    -- 필요하면 width/height, spawn 위치 등 추가
+    CHECK (point_balance >= 0)
 );
 
 CREATE TABLE products (
     id           UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
     seller_id    UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    map_id       INTEGER      NOT NULL,              -- 맵 ID (관계형 아님)
+    x_position   INTEGER,                            -- X 좌표
+    y_position   INTEGER,                            -- Y 좌표
     title        VARCHAR(255) NOT NULL,
     description  TEXT         NOT NULL,
-    price        INTEGER      NOT NULL,              -- 고정가(즉시 구매가)
     image_urls   TEXT[]       NOT NULL DEFAULT '{}', -- 이미지 URL 리스트
-    categories   TEXT[]       NOT NULL DEFAULT '{}',
-    status       VARCHAR(20)  NOT NULL DEFAULT 'AVAILABLE', 
+    status       VARCHAR(20)  NOT NULL DEFAULT 'AVAILABLE',
     -- ENUM(AVAILABLE, RESERVED, SOLD)
-    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ,
-
-    current_price INTEGER,    -- 경매 현재가 (옵션)
-    start_price   INTEGER     -- 경매 시작가 (옵션)
-    CHECK (price > 0);
+    start_price   INTEGER,                           -- 경매 시작가 (옵션)
+    deadline     TIMESTAMPTZ,                        -- 마감 시간
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 
@@ -74,8 +55,10 @@ CREATE TABLE requests (
     proposed_price INTEGER     DEFAULT 0,
     deadline      TIMESTAMPTZ,
     status        VARCHAR(20), -- ENUM(IN_PROGRESS, COMPLETED, CANCELED)
-    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMPTZ
+    x_position    DOUBLE PRECISION,                   -- X 좌표
+    y_position    DOUBLE PRECISION,                   -- Y 좌표
+    map_id        INTEGER,                            -- 맵 ID
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE request_responses (
@@ -124,7 +107,6 @@ CREATE TABLE notifications (
     message           TEXT         NOT NULL,
     notification_type VARCHAR(30)  NOT NULL,      -- ENUM
     is_read           BOOLEAN      NOT NULL DEFAULT FALSE,
-    is_sent_email     BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
@@ -136,7 +118,3 @@ CREATE INDEX idx_messages_room_created
 
 CREATE INDEX idx_point_transactions_user
     ON point_transactions(user_id);
-
--- 맵별 온라인 유저 조회 인덱스
-CREATE INDEX idx_users_current_map_online
-    ON users(current_map_id, is_online);

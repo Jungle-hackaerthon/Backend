@@ -116,6 +116,9 @@ Redis adapter configuration is prepared but commented out - can be enabled for h
 - Prettier with single quotes, trailing commas
 - No explicit `any` warnings (can be used sparingly)
 - Floating promises generate warnings
+- **ANTI-PATTERN**: Do not destructure or reconstruct DTOs in controllers before passing to services. Pass DTOs directly to service methods.
+  - Bad: `service.method(dto.id, { field1: dto.field1, field2: dto.field2 })`
+  - Good: `service.method(dto)`
 
 ## Environment Variables
 

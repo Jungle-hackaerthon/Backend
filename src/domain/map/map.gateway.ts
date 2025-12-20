@@ -12,6 +12,8 @@ import { MapService } from './map.service';
 import { MapJoinDto } from './dto/map-join.dto';
 import { MapMoveDto } from './dto/map-move.dto';
 import { socketConfig } from '../../config/socket.config';
+import { Product } from '../products/entities/product.entity.js';
+import { AuctionBid } from '../products/entities/auction-bid.entity.js';
 
 @WebSocketGateway({
   namespace: '/map',
@@ -39,6 +41,14 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId: user.userId,
       });
     }
+  }
+
+  emitProductCreated(mapId: string, product: Product) {
+    this.server.to(mapId).emit('product:created', product);
+  }
+
+  emitBidCreated(mapId: string, bid: AuctionBid) {
+    this.server.to(mapId).emit('bid:created', bid);
   }
 
   @SubscribeMessage('map:join')
