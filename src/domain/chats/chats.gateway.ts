@@ -26,11 +26,11 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private readonly chatsService: ChatsService) {}
 
-  async handleConnection(client: Socket) {
+  handleConnection(client: Socket) {
     console.log(`Chat client connected: ${client.id}`);
   }
 
-  async handleDisconnect(client: Socket) {
+  handleDisconnect(client: Socket) {
     console.log(`Chat client disconnected: ${client.id}`);
   }
 
@@ -44,7 +44,6 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.user.userId;
     const { roomId } = payload;
-
     try {
       // 권한 확인
       const isParticipant = await this.chatsService.isRoomParticipant(
