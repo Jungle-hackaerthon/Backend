@@ -10,6 +10,8 @@ import { ChatRoom, ReferenceType } from './entities/chat-room.entity';
 import { Message } from './entities/message.entity';
 import { User } from '../users/user.entity';
 import { SendMessageDto } from './dto/send-message.dto';
+import { Product } from '../products/entities/product.entity';
+import { Request } from '../requests/entities/request.entity';
 
 @Injectable()
 export class ChatsService {
@@ -20,6 +22,10 @@ export class ChatsService {
     private readonly messagesRepository: Repository<Message>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Product)
+    private readonly productsRepository: Repository<Product>,
+    @InjectRepository(Request)
+    private readonly requestsRepository: Repository<Request>,
   ) {}
 
   /**
@@ -27,28 +33,20 @@ export class ChatsService {
    */
   async findOrCreateRoom(
     userId: string,
-    targetUserId: string,
     referenceType: ReferenceType = ReferenceType.GENERAL,
-    referenceId: string | null = null,
+    referenceId: string,
   ) {
+    const roomOwner = await this.getRoomOwner(referenceType, referenceId);
+    const roomOwnerId = roomOwner.id;
+
     // 본인과 채팅 방지
-    if (userId === targetUserId) {
+    if (userId === roomOwnerId) {
       throw new BadRequestException('본인과는 채팅할 수 없습니다.');
     }
 
-    // 상대방 존재 확인
-    const targetUser = await this.usersRepository.findOne({
-      where: { id: targetUserId },
-    });
-
-    if (!targetUser) {
-      throw new NotFoundException('존재하지 않는 사용자입니다.');
-    }
     // user1 < user2 순서 보장 (DB 제약조건 준수)
     const [smallerId, largerId] =
-      userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
-
-    const referenceIdCondition = referenceId === null ? IsNull() : referenceId;
+      userId < roomOwnerId ? [userId, roomOwnerId] : [roomOwnerId, userId];
 
     // 기존 채팅방 조회 (user1-user2 + referenceType + referenceId 조합)
     const existingRoom = await this.chatRoomsRepository.findOne({
@@ -56,7 +54,7 @@ export class ChatsService {
         user1: { id: smallerId },
         user2: { id: largerId },
         referenceType,
-        referenceId: referenceIdCondition,
+        referenceId: referenceId,
       },
       relations: ['user1', 'user2'],
     });
@@ -73,8 +71,8 @@ export class ChatsService {
       throw new NotFoundException('현재 사용자가 존재하지 않습니다.');
     }
 
-    const smallerUser = currentUser.id === smallerId ? currentUser : targetUser;
-    const largerUser = currentUser.id === largerId ? currentUser : targetUser;
+    const smallerUser = currentUser.id === smallerId ? currentUser : roomOwner;
+    const largerUser = currentUser.id === largerId ? currentUser : roomOwner;
 
     const newRoom = this.chatRoomsRepository.create();
     newRoom.user1 = smallerUser;
@@ -315,16 +313,127 @@ export class ChatsService {
   }
 
   /**
+   * reference 정보를 이용해 상대방 User 엔티티를 조회
+   */
+  private async getRoomOwner(
+    referenceType: ReferenceType,
+    referenceId?: string,
+  ): Promise<User> {
+    if (referenceType === ReferenceType.PRODUCT) {
+      const product = await this.productsRepository.findOne({
+        where: { id: referenceId },
+        relations: ['seller'],
+      });
+
+      if (!product) {
+        throw new NotFoundException('존재하지 않는 상품입니다.');
+      }
+
+      return product.seller;
+    }
+
+    if (referenceType === ReferenceType.REQUEST) {
+      const request = await this.requestsRepository.findOne({
+        where: { id: referenceId },
+        relations: ['requester'],
+      });
+
+      if (!request) {
+        throw new NotFoundException('존재하지 않는 요청입니다.');
+      }
+
+      return request.requester;
+    }
+
+    throw new BadRequestException('지원하지 않는 referenceType입니다.');
+  }
+
+  /**
+   * Product별 채팅방 목록 조회 (판매자용)
+   */
+  async getRoomsByProduct(
+    productId: string,
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+  ) {
+    // Product 존재 및 권한 확인
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+      relations: ['seller'],
+    });
+
+    if (!product) {
+      throw new NotFoundException('존재하지 않는 상품입니다.');
+    }
+
+    if (product.seller.id !== userId) {
+      throw new ForbiddenException('해당 상품의 판매자만 조회할 수 있습니다.');
+    }
+
+    // 해당 Product에 대한 채팅방 목록 조회
+    const [rooms, total] = await this.chatRoomsRepository.findAndCount({
+      where: {
+        referenceType: ReferenceType.PRODUCT,
+        referenceId: productId,
+      },
+      relations: ['user1', 'user2'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    // 각 채팅방의 마지막 메시지와 상대방(구매자) 정보 포함
+    const roomsWithDetails = await Promise.all(
+      rooms.map(async (room) => {
+        const lastMessage = await this.messagesRepository.findOne({
+          where: { room: { id: room.id } },
+          relations: ['sender'],
+          order: { createdAt: 'DESC' },
+        });
+
+        // 판매자가 아닌 사용자가 구매자
+        const buyer = room.user1.id === userId ? room.user2 : room.user1;
+
+        return {
+          id: room.id,
+          buyer: {
+            id: buyer.id,
+            nickname: buyer.nickname,
+          },
+          lastMessage: lastMessage
+            ? {
+                content: lastMessage.content,
+                messageType: lastMessage.messageType,
+                createdAt: lastMessage.createdAt,
+              }
+            : null,
+          createdAt: room.createdAt,
+        };
+      }),
+    );
+
+    return {
+      rooms: roomsWithDetails,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
    * 채팅방 ID를 resolve하고 권한을 검증하는 유틸 메서드
    * - roomId가 주어지면 권한 확인
-   * - targetUserId가 주어지면 채팅방 조회 또는 생성
+   * - referenceType + referenceId가 주어지면 채팅방 조회 또는 생성
    * @throws BadRequestException, ForbiddenException, NotFoundException
    */
   async validateChatRoom(
     userId: string,
     payload: {
       roomId?: string;
-      targetUserId?: string;
       referenceType?: ReferenceType;
       referenceId?: string;
     },
@@ -343,18 +452,19 @@ export class ChatsService {
       return payload.roomId;
     }
 
-    // targetUserId가 주어진 경우 (채팅방 조회 또는 생성)
-    if (payload.targetUserId) {
+    // referenceType + referenceId가 주어진 경우 (채팅방 조회 또는 생성)
+    if (payload.referenceType && payload.referenceId) {
       const { room } = await this.findOrCreateRoom(
         userId,
-        payload.targetUserId,
         payload.referenceType,
-        payload.referenceId || null,
+        payload.referenceId,
       );
       return room.id;
     }
 
     // 둘 다 없는 경우
-    throw new BadRequestException('roomId 또는 targetUserId가 필요합니다.');
+    throw new BadRequestException(
+      'roomId 또는 (referenceType + referenceId)가 필요합니다.',
+    );
   }
 }

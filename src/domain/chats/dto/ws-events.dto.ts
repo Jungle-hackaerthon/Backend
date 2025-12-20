@@ -8,10 +8,6 @@ export class ChatJoinDto {
   roomId?: string;
 
   @IsOptional()
-  @IsString()
-  targetUserId?: string;
-
-  @IsOptional()
   @IsEnum(ReferenceType)
   referenceType?: ReferenceType;
 
@@ -24,10 +20,6 @@ export class ChatSendDto {
   @IsOptional()
   @IsString()
   roomId?: string;
-
-  @IsOptional()
-  @IsString()
-  targetUserId?: string;
 
   @IsOptional()
   @IsEnum(ReferenceType)

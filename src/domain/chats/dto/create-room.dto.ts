@@ -1,16 +1,12 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { ReferenceType } from '../entities/chat-room.entity';
 
 export class CreateRoomDto {
   @IsNotEmpty()
-  @IsString()
-  targetUserId: string;
-
-  @IsOptional()
   @IsEnum(ReferenceType)
-  referenceType?: ReferenceType;
+  referenceType: ReferenceType;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  referenceId?: string;
+  referenceId: string;
 }
