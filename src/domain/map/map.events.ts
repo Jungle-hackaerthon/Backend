@@ -21,4 +21,5 @@ export enum MapSocketEvents {
   // 경매 입찰 이벤트
   BID_CREATED = 'bid:created',
   BID_REMOVED = 'bid:removed',
+  AUCTION_ENDED = 'auction:ended',
 }
