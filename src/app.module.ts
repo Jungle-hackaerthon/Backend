@@ -7,6 +7,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { PostsModule } from './posts/posts.module';
 import { DmModule } from './dm/dm.module';
+import { MapModule } from './map/map.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { DmModule } from './dm/dm.module';
     RoomsModule,
     PostsModule,
     DmModule,
+    MapModule,
   ],
   controllers: [AppController],
   providers: [AppService],
