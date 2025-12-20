@@ -8,7 +8,7 @@
 
 | 항목            | 값                                |
 | --------------- | --------------------------------- |
-| Base URL (개발) | `ws://localhost:3001`             |
+| Base URL (개발) | `ws://localhost:3000`             |
 | Base URL (운영) | `ws://api.100won-market.com`      |
 | 프로토콜        | Socket.io v4                      |
 | 인증 방식       | `handshake.auth.token`에 JWT 전달 |
@@ -37,7 +37,7 @@ npm install socket.io-client
 ```tsx
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3001/map', {
+const socket = io('http://localhost:3000/map', {
   auth: {
     token: 'your-jwt-token', // localStorage.getItem('accessToken')
   },
@@ -831,7 +831,7 @@ Array<{
 ## 연결
 
 ```tsx
-const notificationSocket = io('http://localhost:3001/notification', {
+const notificationSocket = io('http://localhost:3000/notification', {
   auth: { token: 'your-jwt-token' },
   transports: ['websocket'],
 });
@@ -1061,7 +1061,7 @@ socket.on('reconnect', (attemptNumber) => {
 
 ```jsx
 // Socket.io CDN 로드 후
-const socket = io('http://localhost:3001/map', {
+const socket = io('http://localhost:3000/map', {
   auth: { token: 'YOUR_JWT_TOKEN' },
 });
 
