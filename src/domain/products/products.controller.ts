@@ -75,8 +75,6 @@ export class ProductsController {
   @HttpCode(HttpStatus.OK)
   settleAuction(@Param('id') productId: string): Promise<{
     product: Product;
-    winnerId: string | null;
-    winningBid: number | null;
   }> {
     return this.productsService.settleAuction(productId);
   }
