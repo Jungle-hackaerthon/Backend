@@ -22,4 +22,9 @@ export enum MapSocketEvents {
   BID_CREATED = 'bid:created',
   BID_REMOVED = 'bid:removed',
   AUCTION_ENDED = 'auction:ended',
+
+  // 요청(Request) 이벤트
+  REQUEST_CREATED = 'request:created',
+  REQUEST_UPDATED = 'request:updated',
+  REQUEST_DELETED = 'request:deleted',
 }

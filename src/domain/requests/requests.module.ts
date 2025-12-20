@@ -1,12 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RequestsController } from './requests.controller';
 import { RequestsService } from './requests.service';
 import { RequestResponse } from './entities/request-response.entity';
 import { Request } from './entities/request.entity';
+import { User } from '../users/user.entity';
+import { MapModule } from '../map/map.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Request, RequestResponse])],
+  imports: [
+    TypeOrmModule.forFeature([Request, RequestResponse, User]),
+    forwardRef(() => MapModule),
+  ],
   controllers: [RequestsController],
   providers: [RequestsService],
   exports: [RequestsService],
