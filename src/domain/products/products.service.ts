@@ -110,7 +110,7 @@ export class ProductsService {
   }
 
   /**
-   * AcutionBid 조회 - 상위 3개
+   * AuctionBid 조회 - 상위 3개
    */
   async getAuctionBidsByProductId(productId: string): Promise<AuctionBid[]> {
     return await this.auctionBidsRepository.find({

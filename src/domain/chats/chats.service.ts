@@ -235,14 +235,7 @@ export class ChatsService {
     if (room.user1.id !== senderId && room.user2.id !== senderId) {
       throw new ForbiddenException('해당 채팅방에 접근 권한이 없습니다.');
     }
-
-    const sender = await this.usersRepository.findOne({
-      where: { id: senderId },
-    });
-
-    if (!sender) {
-      throw new NotFoundException('메시지 전송자가 존재하지 않습니다.');
-    }
+    const sender = room.user1.id === senderId ? room.user1 : room.user2;
 
     // 메시지 저장
     const message = this.messagesRepository.create();
