@@ -30,9 +30,8 @@ export class ChatsController {
   ) {
     const { room, isNew } = await this.chatsService.findOrCreateRoom(
       userId,
-      createRoomDto.targetUserId,
       createRoomDto.referenceType,
-      createRoomDto.referenceId || null,
+      createRoomDto.referenceId,
     );
 
     return {
@@ -68,6 +67,29 @@ export class ChatsController {
     @Query() paginationDto: PaginationDto,
   ) {
     const result = await this.chatsService.getMyRooms(
+      userId,
+      paginationDto.page,
+      paginationDto.limit,
+    );
+
+    return {
+      success: true,
+      data: result,
+    };
+  }
+
+  /**
+   * GET /chat/products/:productId/rooms
+   * Product별 채팅방 목록 조회 (판매자용)
+   */
+  @Get('products/:productId/rooms')
+  async getRoomsByProduct(
+    @UserId() userId: string,
+    @Param('productId') productId: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    const result = await this.chatsService.getRoomsByProduct(
+      productId,
       userId,
       paginationDto.page,
       paginationDto.limit,
