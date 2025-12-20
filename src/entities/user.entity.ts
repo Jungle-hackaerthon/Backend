@@ -12,7 +12,16 @@ export class User {
   id: string;
 
   @Column({ unique: true })
-  username: string;
+  email: string;
+
+  @Column()
+  password: string;
+
+  @Column()
+  nickname: string;
+
+  @Column({ default: 1000 })
+  points: number;
 
   @Column({ nullable: true })
   avatarUrl?: string;
@@ -24,8 +33,6 @@ export class User {
   updatedAt: Date;
 
   // TODO: 추가 필드
-  // - email
-  // - password (해시)
   // - 현재 위치 (x, y, roomId)
   // - 온라인 상태
   // - 관계: posts (OneToMany)

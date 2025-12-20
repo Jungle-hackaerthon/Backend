@@ -13,6 +13,9 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // Global prefix 설정 (REST API용)
+  app.setGlobalPrefix('api');
+
   // Validation 파이프 적용
   app.useGlobalPipes(
     new ValidationPipe({
