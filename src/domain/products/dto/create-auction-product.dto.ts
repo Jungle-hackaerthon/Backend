@@ -20,10 +20,10 @@ export class CreateProductDto {
   mapId: number;
 
   @IsInt()
-  xPosition?: number;
+  xPosition: number;
 
   @IsInt()
-  yPosition?: number;
+  yPosition: number;
 
   @IsNotEmpty()
   @IsString()
@@ -32,11 +32,6 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsString()
   description: string;
-
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsString({ each: true })
-  categories: string[];
 
   @IsInt()
   @Min(0)
@@ -50,7 +45,7 @@ export class CreateProductDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  startPrice?: number;
+  startPrice: number;
 
   @IsOptional()
   @Type(() => Date)

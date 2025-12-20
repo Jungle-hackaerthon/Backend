@@ -123,13 +123,15 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit(MapSocketEvents.USERS_LIST, users);
 
     // 다른 유저들에게 새 유저 입장 알림
-    client.broadcast.to(joinDto.organizationId).emit(MapSocketEvents.USER_JOINED, {
-      userId: userPosition.userId,
-      nickname: userPosition.nickname,
-      x: userPosition.x,
-      y: userPosition.y,
-      direction: userPosition.direction,
-    });
+    client.broadcast
+      .to(joinDto.organizationId)
+      .emit(MapSocketEvents.USER_JOINED, {
+        userId: userPosition.userId,
+        nickname: userPosition.nickname,
+        x: userPosition.x,
+        y: userPosition.y,
+        direction: userPosition.direction,
+      });
 
     return { success: true };
   }
@@ -152,12 +154,14 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // 같은 organization의 다른 유저들에게 이동 알림
-    client.broadcast.to(updatedUser.organizationId).emit(MapSocketEvents.USER_MOVED, {
-      userId: updatedUser.userId,
-      x: updatedUser.x,
-      y: updatedUser.y,
-      direction: updatedUser.direction,
-    });
+    client.broadcast
+      .to(updatedUser.organizationId)
+      .emit(MapSocketEvents.USER_MOVED, {
+        userId: updatedUser.userId,
+        x: updatedUser.x,
+        y: updatedUser.y,
+        direction: updatedUser.direction,
+      });
 
     return { success: true };
   }
