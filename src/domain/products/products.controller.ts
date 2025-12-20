@@ -16,6 +16,7 @@ import { CreateAuctionBidDto } from './dto/create-auction-bid.dto';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto';
 import { Product } from './entities/product.entity';
 import { AuctionBid } from './entities/auction-bid.entity';
+import { SettleAuctionDto } from './dto/settle-auction.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -73,9 +74,12 @@ export class ProductsController {
 
   @Post(':id/settle')
   @HttpCode(HttpStatus.OK)
-  settleAuction(@Param('id') productId: string): Promise<{
+  settleAuction(
+    @Param('id') productId: string,
+    @Body() dto: SettleAuctionDto,
+  ): Promise<{
     product: Product;
   }> {
-    return this.productsService.settleAuction(productId);
+    return this.productsService.settleAuction(productId, dto?.bidId);
   }
 }

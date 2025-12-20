@@ -5,13 +5,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ChatRoom, ReferenceType } from './entities/chat-room.entity';
 import { Message } from './entities/message.entity';
 import { User } from '../users/user.entity';
-import { SendMessageDto } from './dto/send-message.dto';
+import { MessageType, SendMessageDto } from './dto/send-message.dto';
 import { Product } from '../products/entities/product.entity';
 import { Request } from '../requests/entities/request.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationEventType } from '../../common/constants/notification-event-type.js';
 
 @Injectable()
 export class ChatsService {
@@ -26,6 +28,7 @@ export class ChatsService {
     private readonly productsRepository: Repository<Product>,
     @InjectRepository(Request)
     private readonly requestsRepository: Repository<Request>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -99,13 +102,42 @@ export class ChatsService {
    * 내 채팅방 목록 조회
    */
   async getMyRooms(userId: string, page: number = 1, limit: number = 20) {
-    const [rooms, total] = await this.chatRoomsRepository.findAndCount({
+    const participantRooms = await this.chatRoomsRepository.find({
       where: [{ user1: { id: userId } }, { user2: { id: userId } }],
       relations: ['user1', 'user2'],
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
     });
+
+    const messageRoomRows = await this.messagesRepository
+      .createQueryBuilder('message')
+      .leftJoin('message.sender', 'sender')
+      .leftJoin('message.room', 'room')
+      .select('room.id', 'roomId')
+      .where('sender.id = :userId', { userId })
+      .distinct(true)
+      .getRawMany();
+
+    const messageRoomIds = messageRoomRows
+      .map((row) => row.roomId)
+      .filter((roomId) => Boolean(roomId));
+
+    const messageRooms = messageRoomIds.length
+      ? await this.chatRoomsRepository.find({
+          where: { id: In(messageRoomIds) },
+          relations: ['user1', 'user2'],
+        })
+      : [];
+
+    const uniqueRoomsMap = new Map<string, ChatRoom>();
+    participantRooms.forEach((room) => uniqueRoomsMap.set(room.id, room));
+    messageRooms.forEach((room) => uniqueRoomsMap.set(room.id, room));
+
+    const allRooms = Array.from(uniqueRoomsMap.values()).sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+
+    const total = allRooms.length;
+    const startIndex = (page - 1) * limit;
+    const rooms = allRooms.slice(startIndex, startIndex + limit);
 
     // 각 채팅방의 마지막 메시지 조회
     const roomsWithLastMessage = await Promise.all(
@@ -124,6 +156,8 @@ export class ChatsService {
             id: opponent.id,
             nickname: opponent.nickname,
           },
+          referenceType: room.referenceType,
+          referenceId: room.referenceId,
           lastMessage: lastMessage
             ? {
                 content: lastMessage.content,
@@ -175,6 +209,8 @@ export class ChatsService {
         id: room.user2.id,
         nickname: room.user2.nickname,
       },
+      referenceType: room.referenceType,
+      referenceId: room.referenceId,
       createdAt: room.createdAt,
     };
   }
@@ -268,6 +304,35 @@ export class ChatsService {
 
     const savedMessage = await this.messagesRepository.save(message);
 
+    const recipientIds = [room.user1.id, room.user2.id].filter(
+      (participantId) => participantId !== senderId,
+    );
+
+    if (recipientIds.length > 0) {
+      const preview =
+        savedMessage.messageType === MessageType.IMAGE
+          ? '이미지'
+          : savedMessage.content;
+      const notificationMessage = `${sender.nickname}: ${preview}`;
+
+      await Promise.all(
+        recipientIds.map((recipientId) =>
+          this.notificationsService
+            .create(
+              recipientId,
+              notificationMessage,
+              NotificationEventType.CHAT_MESSAGE,
+            )
+            .catch((error) => {
+              console.error(
+                `Failed to create chat notification for ${recipientId}`,
+                error,
+              );
+            }),
+        ),
+      );
+    }
+
     return {
       id: savedMessage.id,
       sender: {
@@ -310,6 +375,22 @@ export class ChatsService {
     }
 
     return room.user1.id === userId ? room.user2.id : room.user1.id;
+  }
+
+  /**
+   * 채팅방 요약 정보 조회 (게이트웨이용)
+   */
+  async getRoomSummary(roomId: string): Promise<ChatRoom> {
+    const room = await this.chatRoomsRepository.findOne({
+      where: { id: roomId },
+      relations: ['user1', 'user2'],
+    });
+
+    if (!room) {
+      throw new NotFoundException('존재하지 않는 채팅방입니다.');
+    }
+
+    return room;
   }
 
   /**
@@ -440,16 +521,23 @@ export class ChatsService {
   ): Promise<string> {
     // roomId가 주어진 경우
     if (payload.roomId) {
-      const isParticipant = await this.isRoomParticipant(
-        payload.roomId,
-        userId,
-      );
+      const room = await this.chatRoomsRepository.findOne({
+        where: { id: payload.roomId },
+        relations: ['user1', 'user2'],
+      });
+
+      if (!room) {
+        throw new NotFoundException('존재하지 않는 채팅방입니다.');
+      }
+
+      const isParticipant =
+        room.user1.id === userId || room.user2.id === userId;
 
       if (!isParticipant) {
         throw new ForbiddenException('채팅방에 접근 권한이 없습니다.');
       }
 
-      return payload.roomId;
+      return room.id;
     }
 
     // referenceType + referenceId가 주어진 경우 (채팅방 조회 또는 생성)
