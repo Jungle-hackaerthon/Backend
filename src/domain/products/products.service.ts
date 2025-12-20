@@ -11,6 +11,9 @@ import { Product, ProductStatus } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-auction-product.dto';
 import { CreateAuctionBidDto } from './dto/create-auction-bid.dto';
 import { MapGateway } from '../map/map.gateway.js';
+import { ChatsService } from '../chats/chats.service';
+import { ReferenceType } from '../chats/entities/chat-room.entity';
+import { MessageType } from '../chats/dto/send-message.dto';
 
 @Injectable()
 export class ProductsService {
@@ -20,6 +23,7 @@ export class ProductsService {
     @InjectRepository(AuctionBid)
     private readonly auctionBidsRepository: Repository<AuctionBid>,
     private readonly mapGateway: MapGateway,
+    private readonly chatsService: ChatsService,
   ) {}
 
   async createAuctionProduct(dto: CreateProductDto): Promise<Product> {
@@ -87,6 +91,17 @@ export class ProductsService {
       );
     }
 
+    const highestBid = await this.auctionBidsRepository.findOne({
+      where: { product: { id: productId } },
+      order: { bidAmount: 'DESC' },
+    });
+
+    if (highestBid && dto.bidAmount <= highestBid.bidAmount) {
+      throw new BadRequestException(
+        'Bid amount must be higher than current highest bid',
+      );
+    }
+
     const bid = this.auctionBidsRepository.create({
       product: { id: productId },
       bidder: { id: dto.bidderId },
@@ -105,13 +120,18 @@ export class ProductsService {
    *  */
 
   async getProductsByMapId(mapId: number): Promise<Product[]> {
-    return await this.productsRepository.find({
-      where: {
-        mapId,
-        status: In([ProductStatus.AVAILABLE, ProductStatus.RESERVED]),
-      },
-      relations: ['seller'],
-    });
+    const now = new Date();
+    return await this.productsRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.seller', 'seller')
+      .where('product.mapId = :mapId', { mapId })
+      .andWhere('product.status IN (:...statuses)', {
+        statuses: [ProductStatus.AVAILABLE, ProductStatus.RESERVED],
+      })
+      .andWhere('(product.deadline IS NULL OR product.deadline > :now)', {
+        now,
+      })
+      .getMany();
   }
 
   /**
@@ -195,7 +215,10 @@ export class ProductsService {
    * - Product status SOLD로 변경
    * - MapGateway로 auction:ended 이벤트 발송
    */
-  async settleAuction(productId: string): Promise<{
+  async settleAuction(
+    productId: string,
+    bidId?: string,
+  ): Promise<{
     product: Product;
   }> {
     // 상품 조회
@@ -212,17 +235,34 @@ export class ProductsService {
       throw new BadRequestException('Product is already sold');
     }
 
-    // 최고 입찰자 찾기
-    const highestBid = await this.auctionBidsRepository.findOne({
-      where: { product: { id: productId } },
-      relations: ['bidder'],
-      order: { bidAmount: 'DESC' },
-    });
+    let selectedBid: AuctionBid | null = null;
+
+    if (bidId) {
+      selectedBid = await this.auctionBidsRepository.findOne({
+        where: { id: bidId },
+        relations: ['bidder', 'product'],
+      });
+
+      if (!selectedBid) {
+        throw new NotFoundException('Bid not found');
+      }
+
+      if (selectedBid.product.id !== productId) {
+        throw new BadRequestException('Bid does not belong to this product');
+      }
+    } else {
+      selectedBid = await this.auctionBidsRepository.findOne({
+        where: { product: { id: productId } },
+        relations: ['bidder'],
+        order: { bidAmount: 'DESC' },
+      });
+    }
 
     // 입찰자가 없는 경우 - 상품만 SOLD로 변경
-    if (!highestBid) {
+    if (!selectedBid) {
       product.status = ProductStatus.SOLD;
       const updated = await this.productsRepository.save(product);
+      this.mapGateway.emitProductUpdated(product.mapId.toString(), updated);
 
       // 이벤트 발송 (낙찰자 없음)
       this.mapGateway.emitAuctionEnded(product.mapId.toString(), {
@@ -240,18 +280,50 @@ export class ProductsService {
     // 상품 상태 변경
     product.status = ProductStatus.SOLD;
     const updated = await this.productsRepository.save(product);
+    this.mapGateway.emitProductUpdated(product.mapId.toString(), updated);
 
     // 이벤트 발송
     this.mapGateway.emitAuctionEnded(product.mapId.toString(), {
       productId: product.id,
-      winnerId: highestBid.bidder.id,
-      winningBid: highestBid.bidAmount,
+      winnerId: selectedBid.bidder.id,
+      winningBid: selectedBid.bidAmount,
       sellerId: product.seller.id,
     });
+
+    await this.sendAuctionWelcomeMessage(
+      product.id,
+      product.seller.id,
+      selectedBid.bidder.id,
+    );
 
     return {
       product: updated,
     };
+  }
+
+  private async sendAuctionWelcomeMessage(
+    productId: string,
+    sellerId: string,
+    winnerId: string,
+  ) {
+    if (sellerId === winnerId) {
+      return;
+    }
+
+    try {
+      const { room } = await this.chatsService.findOrCreateRoom(
+        winnerId,
+        ReferenceType.PRODUCT,
+        productId,
+      );
+
+      await this.chatsService.sendMessage(room.id, sellerId, {
+        content: '안녕하세요!',
+        messageType: MessageType.TEXT,
+      });
+    } catch (error) {
+      console.error('Failed to send auction welcome message', error);
+    }
   }
 
   /**
