@@ -10,10 +10,12 @@ import { User } from '../users/user.entity';
 import { Product } from '../products/entities/product.entity';
 import { Request } from '../requests/entities/request.entity';
 import { envConfig } from '../../config/env.config';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChatRoom, Message, User, Product, Request]),
+    NotificationsModule,
     JwtModule.register({
       secret: envConfig.jwtSecret,
       signOptions: { expiresIn: '2h' },

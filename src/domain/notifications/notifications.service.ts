@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Notification } from './notification.entity';
 import { Observable, Subject } from 'rxjs';
 import { resolveNotificationMessage } from './utils/notification-message.util';
+import { NotificationEventType } from '../../common/constants/notification-event-type.js';
 
 @Injectable()
 export class NotificationsService {
@@ -23,13 +24,18 @@ export class NotificationsService {
     return this.createStream(userId).asObservable();
   }
   /* 알림 생성 */
-  async create(userId: string, message: string): Promise<Notification> {
+  async create(
+    userId: string,
+    message: string,
+    notificationType: NotificationEventType = NotificationEventType.CHAT_MESSAGE,
+  ): Promise<Notification> {
     const { title, message: formattedMessage } =
-      resolveNotificationMessage(message);
+      resolveNotificationMessage(message, notificationType);
     const notification = this.notificationsRepository.create({
       user: { id: userId },
       title,
       message: formattedMessage,
+      notificationType,
     });
     const saved = await this.notificationsRepository.save(notification);
     const stream = this.userStreams.get(userId);

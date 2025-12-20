@@ -28,6 +28,10 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: Socket) {
     console.log(`Chat client connected: ${client.id}`);
+    const userId = client.data.user?.userId;
+    if (userId) {
+      client.join(`user:${userId}`);
+    }
   }
 
   handleDisconnect(client: Socket) {
@@ -92,6 +96,33 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         content: savedMessage.content,
         messageType: savedMessage.messageType,
         createdAt: savedMessage.createdAt,
+      });
+
+      const room = await this.chatsService.getRoomSummary(roomId);
+      const inboxPayload = {
+        roomId,
+        referenceType: room.referenceType,
+        referenceId: room.referenceId,
+        roomCreatedAt: room.createdAt,
+        user1: {
+          id: room.user1.id,
+          nickname: room.user1.nickname,
+        },
+        user2: {
+          id: room.user2.id,
+          nickname: room.user2.nickname,
+        },
+        lastMessage: {
+          content: savedMessage.content,
+          messageType: savedMessage.messageType,
+          createdAt: savedMessage.createdAt,
+        },
+        sender: savedMessage.sender,
+      };
+
+      const participantIds = [room.user1.id, room.user2.id];
+      participantIds.forEach((participantId) => {
+        this.server.to(`user:${participantId}`).emit('chat:inbox', inboxPayload);
       });
 
       // 전송자에게 성공 응답

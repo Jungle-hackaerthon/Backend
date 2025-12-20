@@ -37,6 +37,10 @@ export class ProductsService {
     });
 
     const saved = await this.productsRepository.save(product);
+    const savedWithSeller = await this.productsRepository.findOne({
+      where: { id: saved.id },
+      relations: ['seller'],
+    });
     // const payload: MapProductCreatedPayload = {
     //   productId: saved.id,
     //   mapId: saved.mapId,
@@ -52,8 +56,9 @@ export class ProductsService {
     //   createdAt: saved.createdAt,
     // };
     // 귀찮으니 그냥 entity
-    this.mapGateway.emitProductCreated(dto.mapId.toString(), saved);
-    return saved;
+    const payload = savedWithSeller ?? saved;
+    this.mapGateway.emitProductCreated(dto.mapId.toString(), payload);
+    return payload;
   }
 
   async createAuctionBid(
@@ -156,8 +161,13 @@ export class ProductsService {
 
     product.status = status;
     const updated = await this.productsRepository.save(product);
-    this.mapGateway.emitProductUpdated(product.mapId.toString(), updated);
-    return updated;
+    const updatedWithSeller = await this.productsRepository.findOne({
+      where: { id: updated.id },
+      relations: ['seller'],
+    });
+    const payload = updatedWithSeller ?? updated;
+    this.mapGateway.emitProductUpdated(product.mapId.toString(), payload);
+    return payload;
   }
 
   /* AuctionBid 취소 후 알림 전송 */
