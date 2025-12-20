@@ -5,8 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ChatRoom } from './entities/chat-room.entity';
+import { IsNull, Repository } from 'typeorm';
+import { ChatRoom, ReferenceType } from './entities/chat-room.entity';
 import { Message } from './entities/message.entity';
 import { User } from '../users/user.entity';
 import { SendMessageDto } from './dto/send-message.dto';
@@ -25,7 +25,12 @@ export class ChatsService {
   /**
    * 채팅방 조회 또는 생성
    */
-  async findOrCreateRoom(userId: string, targetUserId: string) {
+  async findOrCreateRoom(
+    userId: string,
+    targetUserId: string,
+    referenceType: ReferenceType = ReferenceType.GENERAL,
+    referenceId: string | null = null,
+  ) {
     // 본인과 채팅 방지
     if (userId === targetUserId) {
       throw new BadRequestException('본인과는 채팅할 수 없습니다.');
@@ -39,13 +44,20 @@ export class ChatsService {
     if (!targetUser) {
       throw new NotFoundException('존재하지 않는 사용자입니다.');
     }
+    // user1 < user2 순서 보장 (DB 제약조건 준수)
+    const [smallerId, largerId] =
+      userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
 
-    // 기존 채팅방 조회 (user1-user2 또는 user2-user1 조합)
+    const referenceIdCondition = referenceId === null ? IsNull() : referenceId;
+
+    // 기존 채팅방 조회 (user1-user2 + referenceType + referenceId 조합)
     const existingRoom = await this.chatRoomsRepository.findOne({
-      where: [
-        { user1: { id: userId }, user2: { id: targetUserId } },
-        { user1: { id: targetUserId }, user2: { id: userId } },
-      ],
+      where: {
+        user1: { id: smallerId },
+        user2: { id: largerId },
+        referenceType,
+        referenceId: referenceIdCondition,
+      },
       relations: ['user1', 'user2'],
     });
 
@@ -61,9 +73,14 @@ export class ChatsService {
       throw new NotFoundException('현재 사용자가 존재하지 않습니다.');
     }
 
+    const smallerUser = currentUser.id === smallerId ? currentUser : targetUser;
+    const largerUser = currentUser.id === largerId ? currentUser : targetUser;
+
     const newRoom = this.chatRoomsRepository.create();
-    newRoom.user1 = currentUser;
-    newRoom.user2 = targetUser;
+    newRoom.user1 = smallerUser;
+    newRoom.user2 = largerUser;
+    newRoom.referenceType = referenceType;
+    newRoom.referenceId = referenceId;
 
     const savedRoom = await this.chatRoomsRepository.save(newRoom);
 
@@ -295,5 +312,49 @@ export class ChatsService {
     }
 
     return room.user1.id === userId ? room.user2.id : room.user1.id;
+  }
+
+  /**
+   * 채팅방 ID를 resolve하고 권한을 검증하는 유틸 메서드
+   * - roomId가 주어지면 권한 확인
+   * - targetUserId가 주어지면 채팅방 조회 또는 생성
+   * @throws BadRequestException, ForbiddenException, NotFoundException
+   */
+  async validateChatRoom(
+    userId: string,
+    payload: {
+      roomId?: string;
+      targetUserId?: string;
+      referenceType?: ReferenceType;
+      referenceId?: string;
+    },
+  ): Promise<string> {
+    // roomId가 주어진 경우
+    if (payload.roomId) {
+      const isParticipant = await this.isRoomParticipant(
+        payload.roomId,
+        userId,
+      );
+
+      if (!isParticipant) {
+        throw new ForbiddenException('채팅방에 접근 권한이 없습니다.');
+      }
+
+      return payload.roomId;
+    }
+
+    // targetUserId가 주어진 경우 (채팅방 조회 또는 생성)
+    if (payload.targetUserId) {
+      const { room } = await this.findOrCreateRoom(
+        userId,
+        payload.targetUserId,
+        payload.referenceType,
+        payload.referenceId || null,
+      );
+      return room.id;
+    }
+
+    // 둘 다 없는 경우
+    throw new BadRequestException('roomId 또는 targetUserId가 필요합니다.');
   }
 }

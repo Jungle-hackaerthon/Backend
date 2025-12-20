@@ -190,8 +190,6 @@ export class ProductsService {
    */
   async settleAuction(productId: string): Promise<{
     product: Product;
-    winnerId: string | null;
-    winningBid: number | null;
   }> {
     // 상품 조회
     const product = await this.productsRepository.findOne({
@@ -229,8 +227,6 @@ export class ProductsService {
 
       return {
         product: updated,
-        winnerId: null,
-        winningBid: null,
       };
     }
 
@@ -248,8 +244,6 @@ export class ProductsService {
 
     return {
       product: updated,
-      winnerId: highestBid.bidder.id,
-      winningBid: highestBid.bidAmount,
     };
   }
 
