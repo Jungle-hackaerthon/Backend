@@ -48,18 +48,21 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // 물건생성 emit
   emitProductCreated(mapId: string, product: Product) {
     this.server.to(mapId).emit(MapSocketEvents.PRODUCT_CREATED, product);
   }
-
+  // 물건수정 emit
   emitProductUpdated(mapId: string, product: Product) {
     this.server.to(mapId).emit(MapSocketEvents.PRODUCT_UPDATED, product);
   }
 
+  // 물건삭제 emit
   emitProductRemoved(mapId: string, productId: string) {
     this.server.to(mapId).emit(MapSocketEvents.PRODUCT_REMOVED, { productId });
   }
 
+  // 물건수정 emit
   emitBidCreated(mapId: string, bid: AuctionBid) {
     this.server.to(mapId).emit(MapSocketEvents.BID_CREATED, bid);
   }
@@ -103,7 +106,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     // TODO: JWT에서 userId, nickname 추출
-    const userId = client.id; // 임시: socket.id 사용
+    const userId = client.data.user.id;
     const nickname = client.data.user.nickname;
 
     const mapId = joinDto.mapId ?? 0;

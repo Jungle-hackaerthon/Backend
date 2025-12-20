@@ -83,7 +83,11 @@ export class RequestsService {
     const qb = this.requestsRepository
       .createQueryBuilder('request')
       .leftJoinAndSelect('request.requester', 'requester')
-      .leftJoin('request_responses', 'response', 'response.request_id = request.id')
+      .leftJoin(
+        'request_responses',
+        'response',
+        'response.request_id = request.id',
+      )
       .addSelect('COUNT(response.id)', 'responseCount')
       .groupBy('request.id')
       .addGroupBy('requester.id');
@@ -136,7 +140,9 @@ export class RequestsService {
     return {
       ...this.formatRequest(request),
       responses: responses.map((r) => this.formatResponse(r)),
-      selectedResponse: selectedResponse ? this.formatResponse(selectedResponse) : null,
+      selectedResponse: selectedResponse
+        ? this.formatResponse(selectedResponse)
+        : null,
     };
   }
 
@@ -172,7 +178,11 @@ export class RequestsService {
     this.mapGateway.emitRequestDeleted(request.mapId, request.id);
   }
 
-  async createResponse(requestId: string, userId: string, dto: CreateResponseDto) {
+  async createResponse(
+    requestId: string,
+    userId: string,
+    dto: CreateResponseDto,
+  ) {
     const request = await this.requestsRepository.findOne({
       where: { id: requestId },
       relations: ['requester'],
@@ -236,7 +246,9 @@ export class RequestsService {
     }
 
     if (request.requester.id !== userId) {
-      throw new ForbiddenException('본인의 요청만 도우미를 선택할 수 있습니다.');
+      throw new ForbiddenException(
+        '본인의 요청만 도우미를 선택할 수 있습니다.',
+      );
     }
 
     const response = await this.requestResponsesRepository.findOne({
