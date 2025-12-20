@@ -51,6 +51,10 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(mapId).emit('bid:created', bid);
   }
 
+  emitProductRemoved(mapId: string, productId: string) {
+    this.server.to(mapId).emit('product:removed', { productId });
+  }
+
   @SubscribeMessage('map:join')
   handleJoinMap(
     @MessageBody() joinDto: MapJoinDto,

@@ -13,7 +13,7 @@ export interface UserPosition {
 
 @Injectable()
 export class MapService {
-  private users: Map<string, UserPosition> = new Map();
+  private usersMap: Map<string, UserPosition> = new Map();
 
   joinMap(
     socketId: string,
@@ -33,7 +33,7 @@ export class MapService {
       socketId,
     };
 
-    this.users.set(socketId, userPosition);
+    this.usersMap.set(socketId, userPosition);
     return userPosition;
   }
 
@@ -43,7 +43,7 @@ export class MapService {
     y: number,
     direction: Direction,
   ): UserPosition | null {
-    const user = this.users.get(socketId);
+    const user = this.usersMap.get(socketId);
     if (!user) {
       return null;
     }
@@ -56,22 +56,22 @@ export class MapService {
   }
 
   leaveMap(socketId: string): UserPosition | null {
-    const user = this.users.get(socketId);
+    const user = this.usersMap.get(socketId);
     if (user) {
-      this.users.delete(socketId);
+      this.usersMap.delete(socketId);
       return user;
     }
     return null;
   }
 
   getUsersByOrganization(organizationId: string): UserPosition[] {
-    return Array.from(this.users.values()).filter(
+    return Array.from(this.usersMap.values()).filter(
       (user) => user.organizationId === organizationId,
     );
   }
 
   getUserBySocketId(socketId: string): UserPosition | null {
-    return this.users.get(socketId) || null;
+    return this.usersMap.get(socketId) || null;
   }
 
   // TODO: 방 생성

@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuctionBid } from './entities/auction-bid.entity';
 import { Product, ProductStatus } from './entities/product.entity';
 
@@ -92,4 +92,89 @@ export class ProductsService {
     this.mapGateway.emitBidCreated(product.mapId.toString(), saved);
     return saved;
   }
+
+  /**
+   * 특정 mapId를 가진 상품 목록들 조회()
+   *   AVAILABLE = 'AVAILABLE',
+   *   RESERVED = 'RESERVED',
+   *  */
+
+  async getProductsByMapId(mapId: number): Promise<Product[]> {
+    return await this.productsRepository.find({
+      where: {
+        mapId,
+        status: In([ProductStatus.AVAILABLE, ProductStatus.RESERVED]),
+      },
+      relations: ['seller'],
+    });
+  }
+
+  /**
+   * AcutionBid 조회 - 상위 3개
+   */
+  async getAuctionBidsByProductId(productId: string): Promise<AuctionBid[]> {
+    return await this.auctionBidsRepository.find({
+      where: { product: { id: productId } },
+      relations: ['bidder'],
+      order: { bidAmount: 'DESC' },
+      take: 3,
+    });
+  }
+
+  /**
+   * 상품 삭제
+   * - 삭제 후 MapGateway 통해 클라이언트에 알림 전송
+   */
+  async removeProduct(productId: string): Promise<void> {
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    await this.productsRepository.remove(product);
+    this.mapGateway.emitProductRemoved(product.mapId.toString(), product.id);
+  }
+
+  /**
+   * Product 상태 변경
+   * - (예: AVAILABLE -> SOLD)
+   */
+  async updateProductStatus(
+    productId: string,
+    status: ProductStatus,
+  ): Promise<Product> {
+    const product = await this.productsRepository.findOne({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    product.status = status;
+    return await this.productsRepository.save(product);
+  }
+
+  /* AuctionBid 취소 후 알림 전송 */
+  async cancelAuctionBid(bidId: string): Promise<void> {
+    const bid = await this.auctionBidsRepository.findOne({
+      where: { id: bidId },
+      relations: ['product'],
+    });
+
+    if (!bid) {
+      throw new NotFoundException('Auction bid not found');
+    }
+
+    await this.auctionBidsRepository.remove(bid);
+    this.mapGateway.emitBidCreated(bid.product.mapId.toString(), bid);
+  }
+
+  /**
+   * 유틸들 모음
+   * AuctionBid 생성 시 검증 validation 메서드
+   */
 }
