@@ -1,12 +1,12 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { BaseTimestampEntity } from '../../../common/base.entity';
 import { User } from '../../users/user.entity';
+
+export enum ProductStatus {
+  AVAILABLE = 'AVAILABLE',
+  RESERVED = 'RESERVED',
+  SOLD = 'SOLD',
+}
 
 @Entity('products')
 export class Product extends BaseTimestampEntity {
@@ -14,14 +14,20 @@ export class Product extends BaseTimestampEntity {
   @JoinColumn({ name: 'seller_id' })
   seller: User;
 
+  @Column({ name: 'map_id', type: 'int' })
+  mapId: number;
+
+  @Column({ name: 'x_position', type: 'int', nullable: true })
+  xPosition: number;
+
+  @Column({ name: 'y_position', type: 'int', nullable: true })
+  yPosition: number;
+
   @Column()
   title: string;
 
   @Column({ type: 'text' })
   description: string;
-
-  @Column({ type: 'int' })
-  price: number;
 
   @Column({
     name: 'image_urls',
@@ -31,24 +37,16 @@ export class Product extends BaseTimestampEntity {
   })
   imageUrls: string[];
 
-  @Column({ type: 'text', array: true, default: () => "'{}'" })
-  categories: string[];
-
-  @Column({ type: 'varchar', default: 'AVAILABLE' })
-  status: string;
-
-  @UpdateDateColumn({
-    name: 'updated_at',
-    nullable: true,
-    type: 'timestamp with time zone',
+  @Column({
+    type: 'enum',
+    enum: ProductStatus,
+    default: ProductStatus.AVAILABLE,
   })
-  updatedAt?: Date;
-
-  @Column({ name: 'current_price', type: 'int', nullable: true })
-  currentPrice?: number;
+  status: ProductStatus;
 
   @Column({ name: 'start_price', type: 'int', nullable: true })
-  startPrice?: number;
+  start_price: number;
 
-  // 입찰은 AuctionBid에서 단방향 매핑
+  @Column({ type: 'timestamptz', nullable: true })
+  deadline?: Date;
 }

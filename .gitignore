@@ -125,8 +125,8 @@ web_modules/
 .yarn-integrity
 
 
-AGENTS.md 
-CLAUDE.md 
+# AGENTS.md 
+# CLAUDE.md 
 
 
 # dotenv environment variable files

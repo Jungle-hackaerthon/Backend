@@ -1,7 +1,17 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseTimestampEntity } from '../../../common/base.entity';
-import { User } from '../../users/user.entity';
+import { BaseTimestampEntity } from '../../common/base.entity';
+import { User } from '../users/user.entity';
 
+// export enum ProductStatus {
+//   AVAILABLE = 'AVAILABLE',
+//   RESERVED = 'RESERVED',
+//   SOLD = 'SOLD',
+// }
+
+export enum PointSourceType {
+  PRODUCT = 'PRODUCT',
+  REQUEST = 'REQUEST',
+}
 @Entity('point_transactions')
 export class PointTransaction extends BaseTimestampEntity {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
@@ -15,6 +25,10 @@ export class PointTransaction extends BaseTimestampEntity {
   @Column({ type: 'int' })
   amount: number;
 
-  @Column({ name: 'source_type', type: 'varchar' })
-  sourceType: string;
+  @Column({
+    name: 'source_type',
+    type: 'varchar',
+    nullable: false,
+  })
+  sourceType: PointSourceType;
 }
