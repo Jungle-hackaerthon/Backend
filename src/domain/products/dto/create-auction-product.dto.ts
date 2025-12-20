@@ -45,7 +45,7 @@ export class CreateProductDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  startPrice: number;
+  startPrice?: number;
 
   @IsOptional()
   @Type(() => Date)
