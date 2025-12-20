@@ -12,36 +12,14 @@ import { MapService } from './map.service';
 import { MapJoinDto } from './dto/map-join.dto';
 import { MapMoveDto } from './dto/map-move.dto';
 import { socketConfig } from '../../config/socket.config';
-import { Product } from '../products/entities/product.entity.js';
-import { AuctionBid } from '../products/entities/auction-bid.entity.js';
-
-/**
- * Socket.IO 이벤트 이름 정의
- */
-export enum MapSocketEvents {
-  // Client -> Server (구독 메시지)
-  MAP_JOIN = 'map:join',
-  MAP_LEAVE = 'map:leave',
-  MAP_MOVE = 'map:move',
-
-  // Server -> Client (발행 메시지)
-  USER_JOINED = 'user:joined',
-  USER_LEFT = 'user:left',
-  USER_MOVED = 'user:moved',
-  USERS_LIST = 'users:list',
-
-  PRODUCT_CREATED = 'product:created',
-  PRODUCT_UPDATED = 'product:updated',
-  PRODUCT_REMOVED = 'product:removed',
-
-  BID_CREATED = 'bid:created',
-  BID_REMOVED = 'bid:removed',
-}
+import { UseGuards } from '@nestjs/common';
+import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 
 @WebSocketGateway({
   namespace: '/map',
   ...socketConfig,
 })
+@UseGuards(WsJwtGuard)
 export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -93,7 +71,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     // TODO: JWT에서 userId, nickname 추출
     const userId = client.id; // 임시: socket.id 사용
-    const nickname = `User_${client.id.substring(0, 5)}`; // 임시 닉네임
+    const nickname = client.data.user.nickname;
 
     // 맵 입장
     const userPosition = this.mapService.joinMap(
