@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { typeOrmConfig } from './config/env.config';
-import { RealtimeModule } from './realtime/realtime.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { PostsModule } from './posts/posts.module';
 import { DmModule } from './dm/dm.module';
@@ -12,7 +11,6 @@ import { MapModule } from './map/map.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeOrmConfig),
-    RealtimeModule,
     RoomsModule,
     PostsModule,
     DmModule,

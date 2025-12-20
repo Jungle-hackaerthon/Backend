@@ -34,8 +34,8 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const user = this.mapService.leaveMap(client.id);
     if (user) {
-      // 같은 organization의 다른 유저들에게 퇴장 알림
-      client.broadcast.to(user.organizationId).emit('user:left', {
+      // 다른 유저들에게 퇴장 알림
+      client.broadcast.to('map').emit('user:left', {
         userId: user.userId,
       });
     }
@@ -55,17 +55,16 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.id,
       userId,
       nickname,
-      joinDto.organizationId,
       joinDto.x,
       joinDto.y,
     );
 
-    // Socket.IO room 입장
-    client.join(joinDto.organizationId);
+    // Socket.IO room 입장 (단일 맵)
+    client.join('map');
 
     // 현재 접속 중인 유저 목록 전송 (본인 제외)
     const users = this.mapService
-      .getUsersByOrganization(joinDto.organizationId)
+      .getAllUsers()
       .filter((u) => u.socketId !== client.id)
       .map((u) => ({
         userId: u.userId,
@@ -78,7 +77,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('users:list', users);
 
     // 다른 유저들에게 새 유저 입장 알림
-    client.broadcast.to(joinDto.organizationId).emit('user:joined', {
+    client.broadcast.to('map').emit('user:joined', {
       userId: userPosition.userId,
       nickname: userPosition.nickname,
       x: userPosition.x,
@@ -106,8 +105,8 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { success: false, message: 'User not found in map' };
     }
 
-    // 같은 organization의 다른 유저들에게 이동 알림
-    client.broadcast.to(updatedUser.organizationId).emit('user:moved', {
+    // 다른 유저들에게 이동 알림
+    client.broadcast.to('map').emit('user:moved', {
       userId: updatedUser.userId,
       x: updatedUser.x,
       y: updatedUser.y,
@@ -123,10 +122,10 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (user) {
       // Socket.IO room 퇴장
-      client.leave(user.organizationId);
+      client.leave('map');
 
       // 다른 유저들에게 퇴장 알림
-      client.broadcast.to(user.organizationId).emit('user:left', {
+      client.broadcast.to('map').emit('user:left', {
         userId: user.userId,
       });
 

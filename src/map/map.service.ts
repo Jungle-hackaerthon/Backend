@@ -7,7 +7,6 @@ export interface UserPosition {
   x: number;
   y: number;
   direction: Direction;
-  organizationId: string;
   socketId: string;
 }
 
@@ -19,7 +18,6 @@ export class MapService {
     socketId: string,
     userId: string,
     nickname: string,
-    organizationId: string,
     x: number,
     y: number,
   ): UserPosition {
@@ -29,7 +27,6 @@ export class MapService {
       x,
       y,
       direction: Direction.DOWN,
-      organizationId,
       socketId,
     };
 
@@ -64,10 +61,8 @@ export class MapService {
     return null;
   }
 
-  getUsersByOrganization(organizationId: string): UserPosition[] {
-    return Array.from(this.users.values()).filter(
-      (user) => user.organizationId === organizationId,
-    );
+  getAllUsers(): UserPosition[] {
+    return Array.from(this.users.values());
   }
 
   getUserBySocketId(socketId: string): UserPosition | null {
