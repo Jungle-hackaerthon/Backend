@@ -6,7 +6,6 @@ import { typeOrmConfig } from './config/env.config';
 import { MapModule } from './domain/map/map.module';
 import { UsersModule } from './domain/users/users.module';
 import { ProductsModule } from './domain/products/products.module';
-import { PointsModule } from './domain/points/points.module';
 import { NotificationsModule } from './domain/notifications/notifications.module';
 import { AuthModule } from './domain/auth/auth.module';
 import { ChatsModule } from './domain/chats/chats.module';
@@ -21,7 +20,6 @@ import { RequestsModule } from './domain/requests/requests.module';
     ProductsModule,
     RequestsModule,
     ChatsModule,
-    PointsModule,
     NotificationsModule,
   ],
   controllers: [AppController],

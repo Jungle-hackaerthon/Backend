@@ -11,8 +11,6 @@ import { Product, ProductStatus } from './entities/product.entity';
 import { CreateProductDto } from './dto/create-auction-product.dto';
 import { CreateAuctionBidDto } from './dto/create-auction-bid.dto';
 import { MapGateway } from '../map/map.gateway.js';
-import { PointsService } from '../points/points.service.js';
-import { PointSourceType } from '../points/point-transaction.entity.js';
 
 @Injectable()
 export class ProductsService {
@@ -22,7 +20,6 @@ export class ProductsService {
     @InjectRepository(AuctionBid)
     private readonly auctionBidsRepository: Repository<AuctionBid>,
     private readonly mapGateway: MapGateway,
-    private readonly pointsService: PointsService,
   ) {}
 
   async createAuctionProduct(dto: CreateProductDto): Promise<Product> {
