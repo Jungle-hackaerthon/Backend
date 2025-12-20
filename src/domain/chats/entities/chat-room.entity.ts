@@ -1,6 +1,6 @@
+import { BaseTimestampEntity } from 'src/common/base.entity';
+import { User } from 'src/domain/users/user.entity';
 import { Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseTimestampEntity } from '../../common/base.entity';
-import { User } from '../../domain/users/user.entity';
 
 @Entity('chat_rooms')
 export class ChatRoom extends BaseTimestampEntity {

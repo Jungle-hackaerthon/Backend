@@ -1,7 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseTimestampEntity } from '../../common/base.entity';
+
 import { ChatRoom } from './chat-room.entity';
-import { User } from '../../domain/users/user.entity';
+import { BaseTimestampEntity } from 'src/common/base.entity';
+import { User } from 'src/domain/users/user.entity';
 
 @Entity('messages')
 export class Message extends BaseTimestampEntity {

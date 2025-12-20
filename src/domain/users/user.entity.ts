@@ -38,16 +38,5 @@ export class User extends BaseTimestampEntity {
 
   @Column({ name: 'is_online', default: false })
   isOnline: boolean;
-
-  @Column({ name: 'last_login_at', type: 'timestamptz', nullable: true })
-  lastLoginAt?: Date;
-
-  @UpdateDateColumn({
-    name: 'updated_at',
-    nullable: true,
-    type: 'timestamp with time zone',
-  })
-  updatedAt?: Date;
-
   // 관계는 단방향으로 다른 엔티티에서만 매핑합니다.
 }

@@ -3,19 +3,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { typeOrmConfig } from './config/env.config';
-import { RealtimeModule } from './infra/realtime/realtime.module';
 import { MapModule } from './domain/map/map.module';
 import { UsersModule } from './domain/users/users.module';
 import { ProductsModule } from './domain/products/products.module';
 import { RequestsModule } from './domain/requests/requests.module';
-import { ChatsModule } from './chats/chats.module';
 import { PointsModule } from './domain/points/points.module';
 import { NotificationsModule } from './domain/notifications/notifications.module';
+import { AuthModule } from './domain/auth/auth.module';
+import { ChatsModule } from './domain/chats/chats.module';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(typeOrmConfig),
-    RealtimeModule,
+    AuthModule,
     MapModule,
     UsersModule,
     ProductsModule,
