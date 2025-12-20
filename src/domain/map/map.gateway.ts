@@ -12,11 +12,14 @@ import { MapService } from './map.service';
 import { MapJoinDto } from './dto/map-join.dto';
 import { MapMoveDto } from './dto/map-move.dto';
 import { socketConfig } from '../../config/socket.config';
+import { UseGuards } from '@nestjs/common';
+import { WsJwtGuard } from '../auth/guards/ws-jwt.guard';
 
 @WebSocketGateway({
   namespace: '/map',
   ...socketConfig,
 })
+@UseGuards(WsJwtGuard)
 export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -48,7 +51,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     // TODO: JWT에서 userId, nickname 추출
     const userId = client.id; // 임시: socket.id 사용
-    const nickname = `User_${client.id.substring(0, 5)}`; // 임시 닉네임
+    const nickname = client.data.user.nickname;
 
     // 맵 입장
     const userPosition = this.mapService.joinMap(
