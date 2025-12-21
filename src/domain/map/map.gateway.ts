@@ -84,6 +84,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   emitRequestCreated(mapId: number, request: any) {
+    console.log('[Request 생성 Emit]', request);
     const roomName = `map_${mapId}`;
     this.server.to(roomName).emit(MapSocketEvents.REQUEST_CREATED, request);
   }
@@ -106,7 +107,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     // TODO: JWT에서 userId, nickname 추출
-    const userId = client.data.user.id;
+    const userId = client.data.user.userId;
     const nickname = client.data.user.nickname;
 
     const mapId = joinDto.mapId ?? 0;
@@ -135,6 +136,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
         x: u.x,
         y: u.y,
         direction: u.direction,
+        mapId: u.mapId,
       }));
 
     client.emit(MapSocketEvents.USERS_LIST, users);
@@ -146,6 +148,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
       x: userPosition.x,
       y: userPosition.y,
       direction: userPosition.direction,
+      mapId: userPosition.mapId,
     });
 
     return { success: true };
@@ -156,6 +159,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() moveDto: MapMoveDto,
     @ConnectedSocket() client: Socket,
   ) {
+    console.log('[Move] Client_id =' + client.id);
     const updatedUser = this.mapService.moveUser(
       client.id,
       moveDto.x,
@@ -175,6 +179,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
       x: updatedUser.x,
       y: updatedUser.y,
       direction: updatedUser.direction,
+      mapId: updatedUser.mapId,
     });
 
     return { success: true };
