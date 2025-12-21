@@ -29,6 +29,10 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(private readonly mapService: MapService) {}
 
+  private getMapRoomName(mapId: string | number) {
+    return `map_${mapId}`;
+  }
+
   handleConnection(client: Socket) {
     console.log(`Map client connected: ${client.id}`);
     // TODO: JWT 인증 확인
@@ -50,25 +54,33 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 물건생성 emit
   emitProductCreated(mapId: string, product: Product) {
-    this.server.to(mapId).emit(MapSocketEvents.PRODUCT_CREATED, product);
+    this.server
+      .to(this.getMapRoomName(mapId))
+      .emit(MapSocketEvents.PRODUCT_CREATED, product);
   }
   // 물건수정 emit
   emitProductUpdated(mapId: string, product: Product) {
-    this.server.to(mapId).emit(MapSocketEvents.PRODUCT_UPDATED, product);
+    this.server
+      .to(this.getMapRoomName(mapId))
+      .emit(MapSocketEvents.PRODUCT_UPDATED, product);
   }
 
   // 물건삭제 emit
   emitProductRemoved(mapId: string, productId: string) {
-    this.server.to(mapId).emit(MapSocketEvents.PRODUCT_REMOVED, { productId });
+    this.server
+      .to(this.getMapRoomName(mapId))
+      .emit(MapSocketEvents.PRODUCT_REMOVED, { productId });
   }
 
   // 물건수정 emit
   emitBidCreated(mapId: string, bid: AuctionBid) {
-    this.server.to(mapId).emit(MapSocketEvents.BID_CREATED, bid);
+    this.server.to(this.getMapRoomName(mapId)).emit(MapSocketEvents.BID_CREATED, bid);
   }
 
   emitBidRemoved(mapId: string, bidId: string) {
-    this.server.to(mapId).emit(MapSocketEvents.BID_REMOVED, { bidId });
+    this.server
+      .to(this.getMapRoomName(mapId))
+      .emit(MapSocketEvents.BID_REMOVED, { bidId });
   }
 
   emitAuctionEnded(
@@ -80,7 +92,7 @@ export class MapGateway implements OnGatewayConnection, OnGatewayDisconnect {
       sellerId: string;
     },
   ) {
-    this.server.to(mapId).emit(MapSocketEvents.AUCTION_ENDED, data);
+    this.server.to(this.getMapRoomName(mapId)).emit(MapSocketEvents.AUCTION_ENDED, data);
   }
 
   emitRequestCreated(mapId: number, request: any) {
